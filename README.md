@@ -59,10 +59,19 @@ majsterai/
 - uv (Python package manager)
 - Docker (for PostgreSQL)
 
+### 0. Clone the Repository
+
+```bash
+git clone git@github.com:hammadfaheem/majsterai-monorepo.git
+cd majsterai-monorepo
+```
+
 ### 1. Start Database
 
 ```bash
-cd monorepo
+# Copy .env.example to .env and update with your values
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials
 docker compose up -d postgres
 ```
 
@@ -71,7 +80,8 @@ docker compose up -d postgres
 ```bash
 cd apps/api
 uv sync
-cp ../../.env.example .env  # Edit with your credentials
+cp .env.example .env  # Edit with your credentials
+# Edit .env with your LiveKit and database credentials
 uv run uvicorn src.main:app --reload --port 8000
 ```
 
@@ -86,10 +96,12 @@ pnpm dev
 ### 4. Start the Agent (separate terminal)
 
 ```bash
-cd ../majsterai-agent
+# Clone the agent repository (if not already cloned)
+git clone git@github.com:hammadfaheem/majsterai-agent.git majsterai-agent
+cd majsterai-agent
 uv sync
 # Edit .env with LiveKit credentials
-uv run python -m livekit.agents dev src/main.py
+uv run python -m livekit.agents dev src/main.py dev
 ```
 
 ### 5. Test
@@ -101,7 +113,18 @@ uv run python -m livekit.agents dev src/main.py
 
 ## Environment Variables
 
-Create `.env` files based on `.env.example`:
+### Root Directory (.env)
+For Docker Compose services (PostgreSQL, Redis):
+
+```env
+# PostgreSQL
+POSTGRES_USER=majsterai
+POSTGRES_PASSWORD=your_secure_password_here
+POSTGRES_DB=majsterai
+```
+
+### API Directory (apps/api/.env)
+For the FastAPI backend:
 
 ```env
 # LiveKit
@@ -110,12 +133,18 @@ LIVEKIT_API_KEY=your_api_key
 LIVEKIT_API_SECRET=your_api_secret
 
 # Database
-DATABASE_URL=postgresql://majsterai:majsterai_dev@localhost:5432/majsterai
+DATABASE_URL=postgresql://majsterai:your_password_here@localhost:5432/majsterai
 
-# AI Models
+# Application
+ENVIRONMENT=development
+DEBUG=true
+
+# AI Models (optional)
 OPENAI_API_KEY=your_openai_key
 DEEPGRAM_API_KEY=your_deepgram_key
 ```
+
+**Important:** Never commit `.env` files to git. Always use `.env.example` as a template.
 
 ## API Endpoints
 
@@ -171,8 +200,12 @@ pnpm lint
 ### Agent
 
 ```bash
+# Clone the agent repository (if not already cloned)
+git clone git@github.com:hammadfaheem/majsterai-agent.git majsterai-agent
 cd majsterai-agent
-uv run python -m livekit.agents dev src/main.py
+uv sync
+# Edit .env with LiveKit credentials
+uv run python -m livekit.agents dev src/main.py dev
 ```
 
 ## License

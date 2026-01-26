@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: majsterai-postgres
     environment:
-      POSTGRES_USER: majsterai
-      POSTGRES_PASSWORD: majsterai_dev
-      POSTGRES_DB: majsterai
+      POSTGRES_USER: ${POSTGRES_USER:-majsterai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-majsterai_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-majsterai}
     ports:
       - "5432:5432"
     volumes:
