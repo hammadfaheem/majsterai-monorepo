@@ -1,0 +1,19 @@
+{
+  "name": "majsterai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MajsterAI - Voice AI Agent Platform",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @majsterai/dashboard dev",
+    "dev:api": "cd apps/api && uv run uvicorn src.main:app --reload --port 8000",
+    "build": "pnpm --filter @majsterai/dashboard build",
+    "lint": "pnpm --filter @majsterai/dashboard lint",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  }
+}
