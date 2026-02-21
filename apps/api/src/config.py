@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
+    # Platform admin: set this email to grant SUPERADMIN role on startup
+    superadmin_email: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

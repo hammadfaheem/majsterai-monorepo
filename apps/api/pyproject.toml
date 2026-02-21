@@ -4,15 +4,19 @@ version = "0.1.0"
 description = "MajsterAI FastAPI Backend"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "sqlalchemy[asyncio]>=2.0",
     "asyncpg>=0.30",
+    "psycopg2-binary>=2.9",
     "livekit-api>=0.8",
     "python-dotenv>=1.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "httpx>=0.28",
+    "bcrypt>=4.0",
+    "PyJWT>=2.8",
 ]
 
 [build-system]

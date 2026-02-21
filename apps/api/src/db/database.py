@@ -1,6 +1,8 @@
 """Database connection and session management."""
 
+import uuid
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -22,6 +24,16 @@ async_session_maker = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+
+def generate_uuid() -> str:
+    """Generate a new UUID string."""
+    return str(uuid.uuid4())
+
+
+def utc_now_ms() -> int:
+    """Get current UTC timestamp in milliseconds."""
+    return int(datetime.utcnow().timestamp() * 1000)
 
 
 async def init_db() -> None:
