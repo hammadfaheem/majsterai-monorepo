@@ -1,9 +1,12 @@
 from logging.config import fileConfig
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+from src.config import Settings
 
 # Import Base without loading db.database (which uses async engine)
 import importlib.util
@@ -29,16 +32,22 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def prepare_database_url(url: str) -> str:
+    """Prepare database URL for psycopg2 - remove unsupported params like channel_binding."""
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query)
+    # Remove channel_binding (not supported by psycopg2)
+    params.pop("channel_binding", None)
+    new_query = urlencode(params, doseq=True)
+    return urlunparse(parsed._replace(query=new_query))
+
+
 def get_url() -> str:
     """Get database URL from app config (sync driver for Alembic)."""
-    from pydantic_settings import BaseSettings
-    class _Settings(BaseSettings):
-        database_url: str = "postgresql://majsterai:majsterai_dev@localhost:5432/majsterai"
-    settings = _Settings()
+    settings = Settings()
     url = settings.database_url
-    if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return url
+    # Clean URL to remove unsupported params (e.g., channel_binding for Neon)
+    return prepare_database_url(url)
 
 
 def run_migrations_offline() -> None:

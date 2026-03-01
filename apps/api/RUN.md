@@ -1,39 +1,57 @@
 # Running the API
 
-Use a **dedicated conda environment** (e.g. `majster`) for this project. Do all setup inside that env so **base stays empty**; do not install API dependencies in base.
+The project uses **uv** for dependency management. Run all commands from the monorepo root (`monorepo/`) unless otherwise noted.
 
-You do not need `uv`; use `pip` and the conda env’s Python.
+## 1. Install dependencies
 
-## 1. Create and activate a conda environment
-
-```bash
-conda create -n majster python=3.12 -y
-conda activate majster
-```
-
-Use this env for all API work so base remains clean.
-
-## 2. Install dependencies
-
-From this directory (`apps/api`):
+From the monorepo root:
 
 ```bash
-pip install -e .
+uv sync
 ```
 
-This installs the project and its dependencies from `pyproject.toml` into the active env (majster), not base.
+## 2. Configure environment
+
+Create `apps/api/.env` (the API always loads its `.env` from this location regardless of working directory):
+
+```env
+# LiveKit
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_api_key_here
+LIVEKIT_API_SECRET=your_api_secret_here
+
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+
+# Application
+ENVIRONMENT=development
+DEBUG=true
+```
+
+> **Note:** The `DATABASE_URL` must be a Neon (or any PostgreSQL) connection string.
+> For Neon, copy the connection string from your Neon project dashboard.
+> The `channel_binding=require` parameter is automatically stripped at runtime — you can leave it in the URL if Neon adds it.
 
 ## 3. Run the server
 
-From `apps/api` (with `majster` activated):
+From the monorepo root:
 
 ```bash
-uvicorn src.main:app --reload --port 8000
+uv run --project apps/api uvicorn src.main:app --reload --port 8000
 ```
 
-## 4. Optional: database and env
+On first startup the API will automatically create all database tables.
 
-- Ensure PostgreSQL and Redis are running (e.g. `docker compose up -d` from the monorepo root).
-- Copy `.env.example` to `.env` and set `DATABASE_URL`, LiveKit keys, and `CORS_ORIGINS` as needed.
+## 4. Run migrations (optional)
 
-API docs: http://localhost:8000/docs
+If you need to run Alembic migrations explicitly:
+
+```bash
+cd apps/api
+uv run alembic upgrade head
+```
+
+## 5. Access
+
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/health

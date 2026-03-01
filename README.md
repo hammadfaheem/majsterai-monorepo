@@ -57,7 +57,7 @@ majsterai/
 - Node.js 20+
 - pnpm 9+
 - uv (Python package manager)
-- Docker (for PostgreSQL)
+- A [Neon](https://neon.tech) account (serverless PostgreSQL — no local Docker needed)
 
 ### 0. Clone the Repository
 
@@ -66,24 +66,25 @@ git clone git@github.com:hammadfaheem/majsterai-monorepo.git
 cd majsterai-monorepo
 ```
 
-### 1. Start Database
+### 1. Configure the API environment
+
+Create `apps/api/.env` with your Neon connection string and LiveKit credentials:
 
 ```bash
-# Copy .env.example to .env and update with your values
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials
-docker compose up -d postgres
+cp apps/api/.env.example apps/api/.env  # if example exists, otherwise create it
+# Edit apps/api/.env with your Neon DATABASE_URL and LiveKit keys
 ```
 
-### 2. Setup FastAPI Backend
+### 2. Setup and run the FastAPI Backend
+
+From the monorepo root:
 
 ```bash
-cd apps/api
 uv sync
-cp .env.example .env  # Edit with your credentials
-# Edit .env with your LiveKit and database credentials
-uv run uvicorn src.main:app --reload --port 8000
+uv run --project apps/api uvicorn src.main:app --reload --port 8000
 ```
+
+Tables are created automatically on first startup.
 
 ### 3. Setup Dashboard
 
@@ -113,18 +114,7 @@ uv run python -m livekit.agents dev src/main.py dev
 
 ## Environment Variables
 
-### Root Directory (.env)
-For Docker Compose services (PostgreSQL, Redis):
-
-```env
-# PostgreSQL
-POSTGRES_USER=majsterai
-POSTGRES_PASSWORD=your_secure_password_here
-POSTGRES_DB=majsterai
-```
-
-### API Directory (apps/api/.env)
-For the FastAPI backend:
+### API Directory (`apps/api/.env`)
 
 ```env
 # LiveKit
@@ -132,19 +122,18 @@ LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_api_key
 LIVEKIT_API_SECRET=your_api_secret
 
-# Database
-DATABASE_URL=postgresql://majsterai:your_password_here@localhost:5432/majsterai
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
 
 # Application
 ENVIRONMENT=development
 DEBUG=true
-
-# AI Models (optional)
-OPENAI_API_KEY=your_openai_key
-DEEPGRAM_API_KEY=your_deepgram_key
 ```
 
-**Important:** Never commit `.env` files to git. Always use `.env.example` as a template.
+Get your `DATABASE_URL` from the [Neon Console](https://console.neon.tech) → your project → **Connection string**.
+The `sslmode=require` and `channel_binding` parameters are handled automatically.
+
+**Important:** Never commit `.env` files to git.
 
 ## API Endpoints
 
@@ -181,11 +170,12 @@ This pattern (from SOFi architecture) enables:
 
 ### FastAPI Backend
 
+From the monorepo root:
+
 ```bash
-cd apps/api
-uv run uvicorn src.main:app --reload
-uv run pytest  # Run tests
-uv run ruff check .  # Lint
+uv run --project apps/api uvicorn src.main:app --reload --port 8000
+uv run --project apps/api pytest          # Run tests
+uv run --project apps/api ruff check src  # Lint
 ```
 
 ### Dashboard
