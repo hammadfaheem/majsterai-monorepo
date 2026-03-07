@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAppSelector } from '@/store/hooks'
 import { ProtectedRoute } from '@/ui/components/ProtectedRoute'
 import { DashboardLayout } from '@/ui/layout/DashboardLayout'
+import { TrainAgentLayout } from '@/ui/layout/train-agent/TrainAgentLayout'
 import { LoginPage } from '@/ui/pages/LoginPage'
 import { OnboardingLayout } from '@/ui/pages/onboarding/OnboardingLayout'
 import { OnboardingManualEntryPage } from '@/ui/pages/onboarding/OnboardingManualEntryPage'
@@ -16,9 +17,11 @@ import { SettingsPage } from '@/ui/pages/SettingsPage'
 import { AppointmentsPage } from '@/ui/pages/AppointmentsPage'
 import { ServicesPage } from '@/ui/pages/ServicesPage'
 import { InvoicesPage } from '@/ui/pages/InvoicesPage'
-import { AgentConfigPage } from '@/ui/pages/AgentConfigPage'
 import { TrainAgentPage } from '@/ui/pages/TrainAgentPage'
 import { ScenariosPage } from '@/ui/pages/ScenariosPage'
+import { BusinessInformationPage } from '@/ui/pages/train-agent/BusinessInformationPage'
+import { PoliciesPage } from '@/ui/pages/train-agent/PoliciesPage'
+import { FAQsPage } from '@/ui/pages/train-agent/FAQsPage'
 import { TransfersPage } from '@/ui/pages/TransfersPage'
 import { SchedulesPage } from '@/ui/pages/SchedulesPage'
 import { DepartmentsPage } from '@/ui/pages/DepartmentsPage'
@@ -60,11 +63,17 @@ export function Router() {
         <Route path="calls" element={<CallHistoryPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
-        <Route path="services" element={<ServicesPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
-        <Route path="train-agent" element={<TrainAgentPage />} />
-        <Route path="agent" element={<AgentConfigPage />} />
-        <Route path="scenarios" element={<ScenariosPage />} />
+        <Route path="train-agent" element={<TrainAgentLayout />}>
+          <Route index element={<TrainAgentPage />} />
+          <Route path="business-information" element={<BusinessInformationPage />} />
+          <Route path="services" element={<ServicesPage />} />
+          <Route path="scenarios" element={<ScenariosPage />} />
+          <Route path="policies" element={<PoliciesPage />} />
+          <Route path="faqs" element={<FAQsPage />} />
+        </Route>
+        <Route path="services" element={<Navigate to="/train-agent/services" replace />} />
+        <Route path="scenarios" element={<Navigate to="/train-agent/scenarios" replace />} />
         <Route path="transfers" element={<TransfersPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
         <Route path="departments" element={<DepartmentsPage />} />

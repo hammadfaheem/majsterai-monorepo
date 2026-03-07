@@ -13,14 +13,13 @@ export function DashboardLayout() {
 
       <div
         className={cn(
-          'min-h-screen transition-all duration-300',
-          'ml-0',
-          sidebarOpen ? 'md:ml-64' : 'md:ml-20'
+          'flex flex-col min-h-screen transition-all duration-300',
+          'ml-0 md:ml-64'
         )}
       >
         <Header />
 
-        <main className="p-6">
+        <main className="flex-1 min-h-0 p-6">
           <Outlet />
         </main>
       </div>

@@ -38,6 +38,7 @@ class OrganizationUpdate(BaseModel):
     time_zone: str | None = None
     country: str | None = None
     currency: str | None = None
+    settings: dict | None = None
     stripe_plan: str | None = None
     stripe_customer_id: str | None = None
     default_schedule_id: int | None = None
@@ -56,6 +57,7 @@ class OrganizationResponse(BaseModel):
     time_zone: str
     country: str | None
     currency: str
+    settings: dict | None = None
     created_at: int
     stripe_plan: str | None = None
     stripe_customer_id: str | None = None
@@ -100,6 +102,7 @@ async def create_organization(
         time_zone=organization.time_zone,
         country=organization.country,
         currency=organization.currency,
+        settings=organization.settings,
         created_at=organization.created_at,
         stripe_plan=organization.stripe_plan,
         stripe_customer_id=organization.stripe_customer_id,
@@ -126,6 +129,7 @@ async def update_organization(
             time_zone=data.time_zone,
             country=data.country,
             currency=data.currency,
+            settings=data.settings,
             stripe_plan=data.stripe_plan,
             stripe_customer_id=data.stripe_customer_id,
             default_schedule_id=data.default_schedule_id,
@@ -141,6 +145,7 @@ async def update_organization(
             time_zone=organization.time_zone,
             country=organization.country,
             currency=organization.currency,
+            settings=organization.settings,
             created_at=organization.created_at,
             stripe_plan=organization.stripe_plan,
             stripe_customer_id=organization.stripe_customer_id,
@@ -170,6 +175,7 @@ async def list_organizations(
             time_zone=org.time_zone,
             country=org.country,
             currency=org.currency,
+            settings=org.settings,
             created_at=org.created_at,
             stripe_plan=org.stripe_plan,
             stripe_customer_id=org.stripe_customer_id,
@@ -199,6 +205,7 @@ async def get_organization(
             time_zone=organization.time_zone,
             country=organization.country,
             currency=organization.currency,
+            settings=organization.settings,
             created_at=organization.created_at,
             stripe_plan=organization.stripe_plan,
             stripe_customer_id=organization.stripe_customer_id,
