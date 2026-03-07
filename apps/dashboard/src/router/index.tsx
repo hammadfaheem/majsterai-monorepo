@@ -3,7 +3,9 @@ import { useAppSelector } from '@/store/hooks'
 import { ProtectedRoute } from '@/ui/components/ProtectedRoute'
 import { DashboardLayout } from '@/ui/layout/DashboardLayout'
 import { LoginPage } from '@/ui/pages/LoginPage'
-import { RegisterPage } from '@/ui/pages/RegisterPage'
+import { OnboardingLayout } from '@/ui/pages/onboarding/OnboardingLayout'
+import { OnboardingManualEntryPage } from '@/ui/pages/onboarding/OnboardingManualEntryPage'
+import { OnboardingRegisterAccountPage } from '@/ui/pages/onboarding/OnboardingRegisterAccountPage'
 import { TestAgentPage } from '@/ui/pages/TestAgentPage'
 import { DashboardPage } from '@/ui/pages/DashboardPage'
 import { LeadsPage } from '@/ui/pages/LeadsPage'
@@ -33,7 +35,12 @@ export function Router() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/register" element={<Navigate to="/onboarding" replace />} />
+      <Route path="/onboarding" element={<OnboardingLayout />}>
+        <Route index element={<Navigate to="/onboarding/manual-entry" replace />} />
+        <Route path="manual-entry" element={<OnboardingManualEntryPage />} />
+        <Route path="register-account" element={<OnboardingRegisterAccountPage />} />
+      </Route>
       <Route
         path="/"
         element={

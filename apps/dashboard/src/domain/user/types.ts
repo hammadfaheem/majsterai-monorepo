@@ -17,6 +17,11 @@ export interface UserRegister {
   email: string
   name: string
   password: string
+  /** Optional onboarding data from /onboarding flow */
+  org_name?: string
+  time_zone?: string
+  country?: string
+  currency?: string
 }
 
 export interface UserLogin {

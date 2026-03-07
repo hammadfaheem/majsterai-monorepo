@@ -6,12 +6,18 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...application.auth.register_with_org import RegisterWithOrgUseCase
 from ...application.user.authenticate_user import AuthenticateUserUseCase
-from ...application.user.create_user import CreateUserUseCase
 from ...application.user.get_user import GetUserUseCase
 from ...db.database import get_db
 from ...domain.user.entity import User as UserEntity
 from ...infrastructure.database.repositories import (
+    AgentRepository,
+    MembershipRepository,
+    OrganizationRepository,
+    SQLAlchemyAgentRepository,
+    SQLAlchemyMembershipRepository,
+    SQLAlchemyOrganizationRepository,
     SQLAlchemyUserRepository,
     UserRepository,
 )
@@ -28,12 +34,32 @@ def get_user_repo(db: AsyncSession = Depends(get_db)) -> UserRepository:
     return SQLAlchemyUserRepository(db)
 
 
+def get_org_repo(db: AsyncSession = Depends(get_db)) -> OrganizationRepository:
+    """Dependency to get organization repository."""
+    return SQLAlchemyOrganizationRepository(db)
+
+
+def get_agent_repo(db: AsyncSession = Depends(get_db)) -> AgentRepository:
+    """Dependency to get agent repository."""
+    return SQLAlchemyAgentRepository(db)
+
+
+def get_membership_repo(db: AsyncSession = Depends(get_db)) -> MembershipRepository:
+    """Dependency to get membership repository."""
+    return SQLAlchemyMembershipRepository(db)
+
+
 class UserRegister(BaseModel):
     """Request model for user registration."""
 
     email: str
     name: str
     password: str
+    # Optional onboarding data (from /onboarding flow)
+    org_name: str | None = None
+    time_zone: str | None = None
+    country: str | None = None
+    currency: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -107,11 +133,27 @@ def create_access_token(user_id: str) -> str:
 async def register(
     data: UserRegister,
     user_repo: UserRepository = Depends(get_user_repo),
+    org_repo: OrganizationRepository = Depends(get_org_repo),
+    agent_repo: AgentRepository = Depends(get_agent_repo),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
-    """Register a new user."""
-    use_case = CreateUserUseCase(user_repo)
+    """Register a new user with default organization and agent."""
+    use_case = RegisterWithOrgUseCase(
+        user_repo=user_repo,
+        org_repo=org_repo,
+        agent_repo=agent_repo,
+        membership_repo=membership_repo,
+    )
     try:
-        user = await use_case.execute(data.email, data.name, data.password)
+        user = await use_case.execute(
+            data.email,
+            data.name,
+            data.password,
+            org_name=data.org_name,
+            time_zone=data.time_zone or "UTC",
+            country=data.country,
+            currency=data.currency or "USD",
+        )
         access_token = create_access_token(user.id)
         return AuthResponse(
             access_token=access_token,

@@ -5,7 +5,16 @@ import type { AuthResponse, User, UserLogin, UserRegister } from '@/domain/user/
 
 export const userService = {
   async register(data: UserRegister): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/api/auth/register', data)
+    const payload = {
+      email: data.email,
+      name: data.name,
+      password: data.password,
+      ...(data.org_name && { org_name: data.org_name }),
+      ...(data.time_zone && { time_zone: data.time_zone }),
+      ...(data.country && { country: data.country }),
+      ...(data.currency && { currency: data.currency }),
+    }
+    const response = await apiClient.post<AuthResponse>('/api/auth/register', payload)
     return response.data
   },
 

@@ -10,7 +10,7 @@ export class CallService {
    */
   async createRoom(data: CreateRoomRequest): Promise<CreateRoomResponse> {
     const response = await apiClient.post<CreateRoomResponse>(
-      '/livekit/create-room',
+      '/api/livekit/create-room',
       data
     )
     return response.data
@@ -24,7 +24,7 @@ export class CallService {
     participantName: string,
     orgId: string
   ): Promise<{ token: string }> {
-    const response = await apiClient.post<{ token: string }>('/livekit/token', {
+    const response = await apiClient.post<{ token: string }>('/api/livekit/token', {
       room_name: roomName,
       participant_name: participantName,
       org_id: orgId,

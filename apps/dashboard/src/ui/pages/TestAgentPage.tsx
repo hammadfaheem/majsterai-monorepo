@@ -1,54 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { VoiceAgent } from '@/ui/test-agent/VoiceAgent'
 import { callService } from '@/application/call/callService'
-import { organizationService } from '@/application/organization/organizationService'
 import { useOrganization } from '@/application/organization/organizationContext'
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/ui/components/Card'
 import { Button } from '@/ui/components/Button'
-import { Input } from '@/ui/components/Input'
-import { Mic, Loader2, AlertCircle, Plus, Settings } from 'lucide-react'
+import { Mic, Loader2, AlertCircle, Settings } from 'lucide-react'
 import type { CreateRoomResponse } from '@/domain/call/types'
 
 type TestState = 'idle' | 'loading' | 'connected' | 'error'
 
 export function TestAgentPage() {
-  const { organizations, currentOrganization, setCurrentOrganization } =
-    useOrganization()
+  const { currentOrganization } = useOrganization()
   const [state, setState] = useState<TestState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [roomData, setRoomData] = useState<CreateRoomResponse | null>(null)
-  const [selectedOrgId, setSelectedOrgId] = useState<string>('')
-  const [newOrgName, setNewOrgName] = useState('')
-  const [showCreateOrg, setShowCreateOrg] = useState(false)
-
-  // Set selected org from current organization
-  useEffect(() => {
-    if (currentOrganization) {
-      setSelectedOrgId(currentOrganization.id)
-    }
-  }, [currentOrganization])
-
-  // Create organization mutation
-  const createOrgMutation = useMutation({
-    mutationFn: (name: string) =>
-      organizationService.createOrganization({ name }),
-    onSuccess: (org) => {
-      setCurrentOrganization(org)
-      setSelectedOrgId(org.id)
-      setNewOrgName('')
-      setShowCreateOrg(false)
-    },
-    onError: (err: Error) => {
-      setError(err.message)
-    },
-  })
 
   // Create room mutation
   const createRoomMutation = useMutation({
@@ -64,22 +33,16 @@ export function TestAgentPage() {
     },
   })
 
-  // Create new organization
-  const handleCreateOrg = async () => {
-    if (!newOrgName.trim()) return
-    createOrgMutation.mutate(newOrgName.trim())
-  }
-
   // Start test call
   const handleStartCall = async () => {
-    if (!selectedOrgId) {
-      setError('Please select or create an organization first')
+    if (!currentOrganization?.id) {
+      setError('No organization found. Please complete onboarding.')
       return
     }
 
     setState('loading')
     setError(null)
-    createRoomMutation.mutate(selectedOrgId)
+    createRoomMutation.mutate(currentOrganization.id)
   }
 
   // Handle disconnect
@@ -98,80 +61,6 @@ export function TestAgentPage() {
         </p>
       </div>
 
-      {/* Organization Selection */}
-      {state === 'idle' && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Select Organization</CardTitle>
-            <CardDescription>
-              Choose an organization to test your agent with
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {organizations.length > 0 ? (
-              <>
-                <select
-                  value={selectedOrgId}
-                  onChange={(e) => {
-                    setSelectedOrgId(e.target.value)
-                    const org = organizations.find((o) => o.id === e.target.value)
-                    if (org) setCurrentOrganization(org)
-                  }}
-                  className="flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                >
-                  {organizations.map((org) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCreateOrg(!showCreateOrg)}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create new organization
-                </Button>
-              </>
-            ) : (
-              <p className="text-slate-500 text-sm">
-                No organizations yet. Create one to get started.
-              </p>
-            )}
-
-            {/* Create Organization Form */}
-            {(showCreateOrg || organizations.length === 0) && (
-              <div className="flex gap-3 pt-4 border-t">
-                <Input
-                  type="text"
-                  value={newOrgName}
-                  onChange={(e) => setNewOrgName(e.target.value)}
-                  placeholder="Organization name..."
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleCreateOrg}
-                  disabled={!newOrgName.trim() || createOrgMutation.isPending}
-                  variant="accent"
-                >
-                  {createOrgMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    'Create'
-                  )}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Call Interface */}
       <Card className="min-h-[400px]">
         {state === 'idle' && (
@@ -182,12 +71,12 @@ export function TestAgentPage() {
                 <Mic className="h-8 w-8 text-slate-400" />
               </div>
             </div>
-            
+
             {/* Button and settings */}
             <div className="flex items-center justify-end gap-3">
               <Button
                 onClick={handleStartCall}
-                disabled={!selectedOrgId && organizations.length > 0}
+                disabled={!currentOrganization?.id}
                 variant="accent"
                 size="default"
               >

@@ -111,6 +111,10 @@ export function RegisterPage() {
             <Link to="/login" className="font-medium text-accent hover:underline">
               Sign in
             </Link>
+            {' · '}
+            <Link to="/onboarding" className="font-medium text-slate-600 hover:underline dark:text-slate-400">
+              Set up with organization details
+            </Link>
           </p>
         </div>
       </div>
