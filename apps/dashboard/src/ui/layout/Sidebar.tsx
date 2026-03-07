@@ -3,24 +3,26 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui.store'
 import { useAppSelector } from '@/store/hooks'
-import { LayoutDashboard, Mic, Settings, Users, Phone, UserPlus, Calendar, Wrench, FileText, Bot, GitBranch, PhoneForwarded, CalendarClock, Building2, Tag, CheckSquare, ShieldCheck, GraduationCap } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Mic,
+  Settings,
+  Phone,
+  UserPlus,
+  Calendar,
+  FileText,
+  CheckSquare,
+  ShieldCheck,
+  GraduationCap,
+} from 'lucide-react'
 
 const baseNavigation = [
-  // { name: 'Home', href: '/', icon: LayoutDashboard },
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Leads', href: '/leads', icon: UserPlus },
   { name: 'Calls', href: '/calls', icon: Phone },
   { name: 'Appointments', href: '/appointments', icon: Calendar },
-  { name: 'Team', href: '/team', icon: Users },
-  { name: 'Services', href: '/services', icon: Wrench },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Train Agent', href: '/train-agent', icon: GraduationCap },
-  { name: 'Agent', href: '/agent', icon: Bot },
-  { name: 'Scenarios', href: '/scenarios', icon: GitBranch },
-  { name: 'Transfers', href: '/transfers', icon: PhoneForwarded },
-  { name: 'Schedules', href: '/schedules', icon: CalendarClock },
-  { name: 'Departments', href: '/departments', icon: Building2 },
-  { name: 'Tags', href: '/tags', icon: Tag },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Test Agent', href: '/test-agent', icon: Mic },
   { name: 'Settings', href: '/settings', icon: Settings },
