@@ -15,6 +15,7 @@ import { AppointmentsPage } from '@/ui/pages/AppointmentsPage'
 import { ServicesPage } from '@/ui/pages/ServicesPage'
 import { InvoicesPage } from '@/ui/pages/InvoicesPage'
 import { AgentConfigPage } from '@/ui/pages/AgentConfigPage'
+import { TrainAgentPage } from '@/ui/pages/TrainAgentPage'
 import { ScenariosPage } from '@/ui/pages/ScenariosPage'
 import { TransfersPage } from '@/ui/pages/TransfersPage'
 import { SchedulesPage } from '@/ui/pages/SchedulesPage'
@@ -54,6 +55,7 @@ export function Router() {
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
+        <Route path="train-agent" element={<TrainAgentPage />} />
         <Route path="agent" element={<AgentConfigPage />} />
         <Route path="scenarios" element={<ScenariosPage />} />
         <Route path="transfers" element={<TransfersPage />} />
