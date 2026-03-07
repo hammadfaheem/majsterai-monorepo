@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { TestAgentWidget } from '@/ui/test-agent/TestAgentWidget'
 import { useUIStore } from '@/store/ui.store'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,8 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <TestAgentWidget />
     </div>
   )
 }

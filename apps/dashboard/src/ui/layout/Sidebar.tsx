@@ -5,7 +5,6 @@ import { useUIStore } from '@/store/ui.store'
 import { useAppSelector } from '@/store/hooks'
 import {
   LayoutDashboard,
-  Mic,
   Settings,
   Phone,
   UserPlus,
@@ -24,7 +23,6 @@ const baseNavigation = [
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Train Agent', href: '/train-agent', icon: GraduationCap },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { name: 'Test Agent', href: '/test-agent', icon: Mic },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 

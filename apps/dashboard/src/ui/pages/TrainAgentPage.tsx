@@ -10,7 +10,6 @@ import {
   HelpCircle,
   ChevronRight,
   Star,
-  Mic,
   type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent } from '@/ui/components/Card'
@@ -176,16 +175,6 @@ export function TrainAgentPage() {
           </div>
         </section>
       </div>
-
-      <Link
-        to="/test-agent"
-        className="fixed bottom-6 right-6 z-50 shadow-lg rounded-lg"
-      >
-        <Button variant="accent" size="lg" className="gap-2">
-          <Mic className="w-5 h-5" />
-          Test Agent
-        </Button>
-      </Link>
     </>
   )
 }

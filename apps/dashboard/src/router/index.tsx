@@ -7,7 +7,6 @@ import { LoginPage } from '@/ui/pages/LoginPage'
 import { OnboardingLayout } from '@/ui/pages/onboarding/OnboardingLayout'
 import { OnboardingManualEntryPage } from '@/ui/pages/onboarding/OnboardingManualEntryPage'
 import { OnboardingRegisterAccountPage } from '@/ui/pages/onboarding/OnboardingRegisterAccountPage'
-import { TestAgentPage } from '@/ui/pages/TestAgentPage'
 import { DashboardPage } from '@/ui/pages/DashboardPage'
 import { LeadsPage } from '@/ui/pages/LeadsPage'
 import { LeadDetailPage } from '@/ui/pages/LeadDetailPage'
@@ -79,7 +78,7 @@ export function Router() {
         <Route path="departments" element={<DepartmentsPage />} />
         <Route path="tags" element={<TagsPage />} />
         <Route path="tasks" element={<TasksPage />} />
-        <Route path="test-agent" element={<TestAgentPage />} />
+        <Route path="test-agent" element={<Navigate to="/train-agent" replace />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="admin" element={<AdminGuard />}>
           <Route index element={<Navigate to="/admin/organizations" replace />} />

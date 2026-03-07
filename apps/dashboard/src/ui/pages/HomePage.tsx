@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card'
 import { Mic, Settings } from 'lucide-react'
 import { Button } from '@/ui/components/Button'
+import { useTestAgentWidgetStore } from '@/store/testAgentWidget.store'
 
 export function HomePage() {
+  const openWidget = useTestAgentWidgetStore((s) => s.open)
+
   return (
     <div className="space-y-6">
       {/* Main Actions */}
@@ -20,11 +22,9 @@ export function HomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/test-agent">
-              <Button variant="accent" className="w-full">
-                Start Testing
-              </Button>
-            </Link>
+            <Button variant="accent" className="w-full" onClick={openWidget}>
+              Start Testing
+            </Button>
           </CardContent>
         </Card>
 
