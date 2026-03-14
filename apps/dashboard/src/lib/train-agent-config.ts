@@ -4,7 +4,7 @@ export interface TrainAgentNavItem {
   id: string
   title: string
   href: string
-  icon: 'building2' | 'wrench' | 'git-branch' | 'file-text' | 'help-circle' | 'message-circle'
+  icon: 'building2' | 'wrench' | 'git-branch' | 'file-text' | 'help-circle' | 'message-circle' | 'phone-forwarded'
 }
 
 export const TRAIN_AGENT_KNOWLEDGE_BASE_ITEMS: TrainAgentNavItem[] = [
@@ -43,5 +43,11 @@ export const TRAIN_AGENT_KNOWLEDGE_BASE_ITEMS: TrainAgentNavItem[] = [
     title: 'FAQs',
     href: '/train-agent/faqs',
     icon: 'help-circle',
+  },
+  {
+    id: 'transfers',
+    title: 'Transfers',
+    href: '/train-agent/transfers',
+    icon: 'phone-forwarded',
   },
 ]

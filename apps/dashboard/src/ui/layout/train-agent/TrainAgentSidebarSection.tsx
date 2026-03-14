@@ -7,6 +7,7 @@ import {
   GitBranch,
   HelpCircle,
   MessageCircle,
+  PhoneForwarded,
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ const ICON_MAP: Record<TrainAgentNavItem['icon'], LucideIcon> = {
   'file-text': FileText,
   'help-circle': HelpCircle,
   'message-circle': MessageCircle,
+  'phone-forwarded': PhoneForwarded,
 }
 
 interface TrainAgentSidebarSectionProps {

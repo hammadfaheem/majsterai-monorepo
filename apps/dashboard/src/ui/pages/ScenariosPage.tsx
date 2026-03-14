@@ -117,6 +117,14 @@ export function ScenariosPage() {
     else createScenario.mutate()
   }
 
+  if (!currentOrganization) {
+    return (
+      <div className="text-slate-600 dark:text-slate-400">
+        Select an organization to configure scenarios.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

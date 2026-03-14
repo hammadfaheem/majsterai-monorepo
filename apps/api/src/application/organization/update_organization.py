@@ -55,7 +55,9 @@ class UpdateOrganizationUseCase:
         if currency is not None:
             organization.currency = currency
         if settings is not None:
-            organization.settings = settings
+            existing = organization.settings or {}
+            merged = {**existing, **settings}
+            organization.settings = merged
         if stripe_plan is not None:
             organization.stripe_plan = stripe_plan
         if stripe_customer_id is not None:

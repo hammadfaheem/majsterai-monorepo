@@ -7,9 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...db.database import get_db, utc_now_ms
 from ...domain.trade_service.entity import TradeService as TradeServiceEntity
 from ...infrastructure.database.repositories import (
+    MembershipRepository,
     TradeServiceRepository,
     SQLAlchemyTradeServiceRepository,
 )
+from ...interfaces.auth.router import get_current_user_dep, get_membership_repo
+from ...shared.org_access import require_org_membership, verify_org_access
+from ...domain.user.entity import User as UserEntity
 
 router = APIRouter()
 
@@ -113,21 +117,37 @@ def _to_response(s: TradeServiceEntity) -> TradeServiceResponse:
 
 
 @router.get("/org/{org_id}", response_model=list[TradeServiceResponse])
-async def list_services(org_id: str, repo: TradeServiceRepository = Depends(get_repo)):
+async def list_services(
+    org_id: str,
+    repo: TradeServiceRepository = Depends(get_repo),
+    _: None = Depends(require_org_membership),
+):
     items = await repo.list_by_org_id(org_id)
     return [_to_response(s) for s in items]
 
 
 @router.get("/{service_id}", response_model=TradeServiceResponse)
-async def get_service(service_id: int, repo: TradeServiceRepository = Depends(get_repo)):
+async def get_service(
+    service_id: int,
+    repo: TradeServiceRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     s = await repo.get_by_id(service_id)
     if not s:
         raise HTTPException(status_code=404, detail="Trade service not found")
+    await verify_org_access(s.org_id, current_user, membership_repo)
     return _to_response(s)
 
 
 @router.post("/", response_model=TradeServiceResponse)
-async def create_service(data: TradeServiceCreate, repo: TradeServiceRepository = Depends(get_repo)):
+async def create_service(
+    data: TradeServiceCreate,
+    repo: TradeServiceRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
+    await verify_org_access(data.org_id, current_user, membership_repo)
     now = utc_now_ms()
     entity = TradeServiceEntity(
         id=0,
@@ -157,10 +177,17 @@ async def create_service(data: TradeServiceCreate, repo: TradeServiceRepository 
 
 
 @router.put("/{service_id}", response_model=TradeServiceResponse)
-async def update_service(service_id: int, data: TradeServiceUpdate, repo: TradeServiceRepository = Depends(get_repo)):
+async def update_service(
+    service_id: int,
+    data: TradeServiceUpdate,
+    repo: TradeServiceRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     existing = await repo.get_by_id(service_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Trade service not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     now = utc_now_ms()
     if data.name is not None:
         existing.name = data.name
@@ -202,9 +229,15 @@ async def update_service(service_id: int, data: TradeServiceUpdate, repo: TradeS
 
 
 @router.delete("/{service_id}")
-async def delete_service(service_id: int, repo: TradeServiceRepository = Depends(get_repo)):
+async def delete_service(
+    service_id: int,
+    repo: TradeServiceRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     existing = await repo.get_by_id(service_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Trade service not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     await repo.delete(service_id)
     return {"message": "Deleted"}

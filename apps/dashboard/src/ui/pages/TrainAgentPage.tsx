@@ -9,6 +9,7 @@ import {
   FileText,
   HelpCircle,
   MessageCircle,
+  PhoneForwarded,
   ChevronRight,
   Star,
   type LucideIcon,
@@ -66,6 +67,13 @@ const KNOWLEDGE_BASE_CARDS: {
     title: 'FAQs',
     description: 'Common questions your agent can answer',
     href: '/train-agent/faqs',
+  },
+  {
+    id: 'transfers',
+    icon: PhoneForwarded,
+    title: 'Transfers',
+    description: 'Call transfer destinations',
+    href: '/train-agent/transfers',
   },
 ]
 

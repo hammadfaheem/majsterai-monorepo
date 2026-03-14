@@ -16,6 +16,7 @@ from ...infrastructure.database.repositories import (
     SQLAlchemyOrganizationRepository,
 )
 from ...shared.exceptions import NotFoundError
+from ...shared.org_access import require_org_membership
 from ..auth.router import get_current_user_dep
 from ...domain.user.entity import User as UserEntity
 
@@ -122,6 +123,7 @@ async def update_organization(
     org_id: str,
     data: OrganizationUpdate,
     org_repo: OrganizationRepository = Depends(get_org_repo),
+    _: None = Depends(require_org_membership),
 ):
     """Update an organization (partial update)."""
     use_case = UpdateOrganizationUseCase(org_repo)
@@ -198,6 +200,7 @@ async def list_organizations(
 async def get_organization(
     org_id: str,
     org_repo: OrganizationRepository = Depends(get_org_repo),
+    _: None = Depends(require_org_membership),
 ):
     """Get a specific organization."""
     use_case = GetOrganizationUseCase(org_repo)

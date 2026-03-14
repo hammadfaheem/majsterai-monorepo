@@ -7,10 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...db.database import get_db, utc_now_ms
 from ...db.database import generate_uuid
 from ...domain.scenario.entity import Scenario as ScenarioEntity
+from ...domain.user.entity import User as UserEntity
 from ...infrastructure.database.repositories import (
+    MembershipRepository,
     ScenarioRepository,
     SQLAlchemyScenarioRepository,
 )
+from ...interfaces.auth.router import get_current_user_dep, get_membership_repo
+from ...shared.org_access import require_org_membership, verify_org_access
 
 router = APIRouter()
 
@@ -93,10 +97,13 @@ async def list_scenarios(
 async def get_scenario(
     scenario_id: str,
     repo: ScenarioRepository = Depends(get_scenario_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     s = await repo.get_by_id(scenario_id)
     if not s:
         raise HTTPException(status_code=404, detail="Scenario not found")
+    await verify_org_access(s.org_id, current_user, membership_repo)
     return ScenarioResponse(
         id=s.id,
         org_id=s.org_id,
@@ -118,7 +125,10 @@ async def get_scenario(
 async def create_scenario(
     data: ScenarioCreate,
     repo: ScenarioRepository = Depends(get_scenario_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
+    await verify_org_access(data.org_id, current_user, membership_repo)
     now = utc_now_ms()
     entity = ScenarioEntity(
         id=generate_uuid(),
@@ -158,10 +168,13 @@ async def update_scenario(
     scenario_id: str,
     data: ScenarioUpdate,
     repo: ScenarioRepository = Depends(get_scenario_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     existing = await repo.get_by_id(scenario_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Scenario not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     now = utc_now_ms()
     if data.name is not None:
         existing.name = data.name
@@ -204,9 +217,12 @@ async def update_scenario(
 async def delete_scenario(
     scenario_id: str,
     repo: ScenarioRepository = Depends(get_scenario_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     existing = await repo.get_by_id(scenario_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Scenario not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     await repo.delete(scenario_id)
     return {"message": "Deleted"}

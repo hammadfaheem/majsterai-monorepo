@@ -6,10 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...db.database import get_db, utc_now_ms
 from ...domain.trade_category.entity import TradeCategory as TradeCategoryEntity
+from ...domain.user.entity import User as UserEntity
 from ...infrastructure.database.repositories import (
+    MembershipRepository,
     TradeCategoryRepository,
     SQLAlchemyTradeCategoryRepository,
 )
+from ...interfaces.auth.router import get_current_user_dep, get_membership_repo
+from ...shared.org_access import require_org_membership, verify_org_access
 
 router = APIRouter()
 
@@ -42,7 +46,11 @@ class TradeCategoryResponse(BaseModel):
 
 
 @router.get("/org/{org_id}", response_model=list[TradeCategoryResponse])
-async def list_categories(org_id: str, repo: TradeCategoryRepository = Depends(get_repo)):
+async def list_categories(
+    org_id: str,
+    repo: TradeCategoryRepository = Depends(get_repo),
+    _: None = Depends(require_org_membership),
+):
     items = await repo.list_by_org_id(org_id)
     return [
         TradeCategoryResponse(id=c.id, org_id=c.org_id, name=c.name, type=c.type, created_at=c.created_at, updated_at=c.updated_at)
@@ -51,15 +59,27 @@ async def list_categories(org_id: str, repo: TradeCategoryRepository = Depends(g
 
 
 @router.get("/{category_id}", response_model=TradeCategoryResponse)
-async def get_category(category_id: int, repo: TradeCategoryRepository = Depends(get_repo)):
+async def get_category(
+    category_id: int,
+    repo: TradeCategoryRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     c = await repo.get_by_id(category_id)
     if not c:
         raise HTTPException(status_code=404, detail="Trade category not found")
+    await verify_org_access(c.org_id, current_user, membership_repo)
     return TradeCategoryResponse(id=c.id, org_id=c.org_id, name=c.name, type=c.type, created_at=c.created_at, updated_at=c.updated_at)
 
 
 @router.post("/", response_model=TradeCategoryResponse)
-async def create_category(data: TradeCategoryCreate, repo: TradeCategoryRepository = Depends(get_repo)):
+async def create_category(
+    data: TradeCategoryCreate,
+    repo: TradeCategoryRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
+    await verify_org_access(data.org_id, current_user, membership_repo)
     now = utc_now_ms()
     entity = TradeCategoryEntity(id=0, org_id=data.org_id, name=data.name, type=data.type, created_at=now, updated_at=now)
     created = await repo.create(entity)
@@ -67,10 +87,17 @@ async def create_category(data: TradeCategoryCreate, repo: TradeCategoryReposito
 
 
 @router.put("/{category_id}", response_model=TradeCategoryResponse)
-async def update_category(category_id: int, data: TradeCategoryUpdate, repo: TradeCategoryRepository = Depends(get_repo)):
+async def update_category(
+    category_id: int,
+    data: TradeCategoryUpdate,
+    repo: TradeCategoryRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     existing = await repo.get_by_id(category_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Trade category not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     now = utc_now_ms()
     if data.name is not None:
         existing.name = data.name
@@ -82,9 +109,15 @@ async def update_category(category_id: int, data: TradeCategoryUpdate, repo: Tra
 
 
 @router.delete("/{category_id}")
-async def delete_category(category_id: int, repo: TradeCategoryRepository = Depends(get_repo)):
+async def delete_category(
+    category_id: int,
+    repo: TradeCategoryRepository = Depends(get_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
+):
     existing = await repo.get_by_id(category_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Trade category not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     await repo.delete(category_id)
     return {"message": "Deleted"}

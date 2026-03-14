@@ -72,10 +72,11 @@ export function Router() {
           <Route path="policies" element={<PoliciesPage />} />
           <Route path="greeting-closing" element={<GreetingClosingPage />} />
           <Route path="faqs" element={<FAQsPage />} />
+          <Route path="transfers" element={<TransfersPage />} />
         </Route>
         <Route path="services" element={<Navigate to="/train-agent/services" replace />} />
         <Route path="scenarios" element={<Navigate to="/train-agent/scenarios" replace />} />
-        <Route path="transfers" element={<TransfersPage />} />
+        <Route path="transfers" element={<Navigate to="/train-agent/transfers" replace />} />
         <Route path="schedules" element={<SchedulesPage />} />
         <Route path="departments" element={<DepartmentsPage />} />
         <Route path="tags" element={<TagsPage />} />

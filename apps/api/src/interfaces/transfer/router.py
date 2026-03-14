@@ -7,10 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...db.database import get_db, utc_now_ms
 from ...db.database import generate_uuid
 from ...domain.transfer.entity import Transfer as TransferEntity
+from ...domain.user.entity import User as UserEntity
 from ...infrastructure.database.repositories import (
+    MembershipRepository,
     TransferRepository,
     SQLAlchemyTransferRepository,
 )
+from ...interfaces.auth.router import get_current_user_dep, get_membership_repo
+from ...shared.org_access import require_org_membership, verify_org_access
 
 router = APIRouter()
 
@@ -89,10 +93,13 @@ async def list_transfers(
 async def get_transfer(
     transfer_id: str,
     repo: TransferRepository = Depends(get_transfer_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     t = await repo.get_by_id(transfer_id)
     if not t:
         raise HTTPException(status_code=404, detail="Transfer not found")
+    await verify_org_access(t.org_id, current_user, membership_repo)
     return TransferResponse(
         id=t.id,
         org_id=t.org_id,
@@ -113,7 +120,10 @@ async def get_transfer(
 async def create_transfer(
     data: TransferCreate,
     repo: TransferRepository = Depends(get_transfer_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
+    await verify_org_access(data.org_id, current_user, membership_repo)
     now = utc_now_ms()
     entity = TransferEntity(
         id=generate_uuid(),
@@ -151,10 +161,13 @@ async def update_transfer(
     transfer_id: str,
     data: TransferUpdate,
     repo: TransferRepository = Depends(get_transfer_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     existing = await repo.get_by_id(transfer_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Transfer not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     now = utc_now_ms()
     if data.label is not None:
         existing.label = data.label
@@ -194,9 +207,12 @@ async def update_transfer(
 async def delete_transfer(
     transfer_id: str,
     repo: TransferRepository = Depends(get_transfer_repo),
+    current_user: UserEntity = Depends(get_current_user_dep),
+    membership_repo: MembershipRepository = Depends(get_membership_repo),
 ):
     existing = await repo.get_by_id(transfer_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Transfer not found")
+    await verify_org_access(existing.org_id, current_user, membership_repo)
     await repo.delete(transfer_id)
     return {"message": "Deleted"}

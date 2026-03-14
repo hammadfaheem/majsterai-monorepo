@@ -206,6 +206,14 @@ export function ServicesPage() {
     }
   }
 
+  if (!currentOrganization) {
+    return (
+      <div className="text-slate-600 dark:text-slate-400">
+        Select an organization to configure services.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
