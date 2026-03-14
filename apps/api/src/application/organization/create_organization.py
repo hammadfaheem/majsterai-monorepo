@@ -8,6 +8,18 @@ from ...infrastructure.database.repositories import AgentRepository, Organizatio
 from ...db.database import utc_now_ms
 
 
+def _validate_country(country: str | None) -> str | None:
+    """Validate and normalize country to ISO 3166-1 alpha-2 (2-letter) code."""
+    if not country or not country.strip():
+        return None
+    normalized = country.strip().upper()
+    if len(normalized) != 2 or not normalized.isalpha():
+        raise ValueError(
+            "Country must be a 2-letter ISO 3166-1 alpha-2 code (e.g. JP, US, PL)"
+        )
+    return normalized
+
+
 def generate_slug(name: str) -> str:
     """Generate URL-friendly slug from name."""
     slug = name.lower()
@@ -51,6 +63,8 @@ class CreateOrganizationUseCase:
 
         now = utc_now_ms()
         from ...db.database import generate_uuid
+
+        country = _validate_country(country)
 
         # Create organization entity
         organization = OrganizationEntity(

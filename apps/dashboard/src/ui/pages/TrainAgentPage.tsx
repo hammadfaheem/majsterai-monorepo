@@ -8,6 +8,7 @@ import {
   Building2,
   FileText,
   HelpCircle,
+  MessageCircle,
   ChevronRight,
   Star,
   type LucideIcon,
@@ -44,6 +45,13 @@ const KNOWLEDGE_BASE_CARDS: {
     title: 'Scenarios',
     description: 'Conversation flows and restrictions',
     href: '/train-agent/scenarios',
+  },
+  {
+    id: 'greeting-closing',
+    icon: MessageCircle,
+    title: 'Greeting and Closing',
+    description: 'Greeting, after-hours, and closing messages',
+    href: '/train-agent/greeting-closing',
   },
   {
     id: 'policies',

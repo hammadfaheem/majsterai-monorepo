@@ -15,6 +15,18 @@ const COMMON_TIMEZONES = [
   'Australia/Sydney',
 ]
 
+const COUNTRIES = [
+  { code: 'AU', name: 'Australia' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'JP', name: 'Japan' },
+]
+
 export function OnboardingManualEntryPage() {
   const saved = getOnboardingData()
   const [orgName, setOrgName] = useState(saved?.org_name ?? '')
@@ -33,7 +45,7 @@ export function OnboardingManualEntryPage() {
     setOnboardingData({
       org_name: orgName.trim(),
       time_zone: timeZone,
-      country: country.trim() || undefined,
+      country: country || undefined,
     })
     navigate('/onboarding/register-account', { replace: true })
   }
@@ -98,14 +110,19 @@ export function OnboardingManualEntryPage() {
           >
             Country (optional)
           </label>
-          <Input
+          <select
             id="country"
-            type="text"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="Poland"
-            className="mt-1"
-          />
+            className="mt-1 flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          >
+            <option value="">Select country</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <Button type="submit" variant="accent" className="w-full">
           Continue

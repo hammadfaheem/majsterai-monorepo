@@ -10,6 +10,18 @@ import { Input } from '@/ui/components/Input'
 import { Modal } from '@/ui/components/Modal'
 import type { AdminOrganization } from '@/application/admin/adminService'
 
+const COUNTRIES = [
+  { code: 'AU', name: 'Australia' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'JP', name: 'Japan' },
+]
+
 interface Schedule {
   id: number
   name: string
@@ -137,7 +149,18 @@ export function AdminOrganizationsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Country</label>
-            <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. US, PL" />
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="">Select country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Currency</label>

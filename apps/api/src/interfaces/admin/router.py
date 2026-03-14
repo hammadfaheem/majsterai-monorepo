@@ -130,24 +130,26 @@ async def admin_update_organization(
             seats=data.seats,
             addons=data.addons,
         )
-        return OrganizationResponse(
-            id=o.id,
-            name=o.name,
-            slug=o.slug,
-            time_zone=o.time_zone,
-            country=o.country,
-            currency=o.currency,
-            created_at=o.created_at,
-            stripe_plan=o.stripe_plan,
-            stripe_customer_id=o.stripe_customer_id,
-            default_schedule_id=o.default_schedule_id,
-            public_scheduler_configurations=o.public_scheduler_configurations,
-            tag=o.tag,
-            seats=o.seats,
-            addons=o.addons,
-        )
-    except (NotFoundError, ValueError) as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    return OrganizationResponse(
+        id=o.id,
+        name=o.name,
+        slug=o.slug,
+        time_zone=o.time_zone,
+        country=o.country,
+        currency=o.currency,
+        created_at=o.created_at,
+        stripe_plan=o.stripe_plan,
+        stripe_customer_id=o.stripe_customer_id,
+        default_schedule_id=o.default_schedule_id,
+        public_scheduler_configurations=o.public_scheduler_configurations,
+        tag=o.tag,
+        seats=o.seats,
+        addons=o.addons,
+    )
 
 
 # --- Users (admin-only) ---

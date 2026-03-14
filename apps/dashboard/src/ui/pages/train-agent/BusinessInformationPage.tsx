@@ -29,6 +29,7 @@ const COUNTRIES = [
   { code: 'FR', name: 'France' },
   { code: 'CA', name: 'Canada' },
   { code: 'NZ', name: 'New Zealand' },
+  { code: 'JP', name: 'Japan' },
 ]
 
 const CURRENCIES = [

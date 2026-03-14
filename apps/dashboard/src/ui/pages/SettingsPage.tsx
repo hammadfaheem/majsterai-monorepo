@@ -9,6 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card'
 import { Button } from '@/ui/components/Button'
 import { Input } from '@/ui/components/Input'
 
+const COUNTRIES = [
+  { code: 'AU', name: 'Australia' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'JP', name: 'Japan' },
+]
+
 export function SettingsPage() {
   const { currentOrganization } = useOrganization()
   const queryClient = useQueryClient()
@@ -95,13 +107,19 @@ export function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">Country (code)</label>
-            <Input
+            <label className="block text-sm font-medium text-slate-700">Country</label>
+            <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="e.g. US, PL"
-              className="mt-1"
-            />
+              className="mt-1 flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <option value="">Select country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Currency</label>

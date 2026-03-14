@@ -89,12 +89,15 @@ async def create_organization(
 ):
     """Create a new organization with a default agent."""
     use_case = CreateOrganizationUseCase(org_repo, agent_repo)
-    organization, _ = await use_case.execute(
-        name=data.name,
-        time_zone=data.time_zone,
-        country=data.country,
-        currency=data.currency,
-    )
+    try:
+        organization, _ = await use_case.execute(
+            name=data.name,
+            time_zone=data.time_zone,
+            country=data.country,
+            currency=data.currency,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return OrganizationResponse(
         id=organization.id,
         name=organization.name,
@@ -138,25 +141,27 @@ async def update_organization(
             seats=data.seats,
             addons=data.addons,
         )
-        return OrganizationResponse(
-            id=organization.id,
-            name=organization.name,
-            slug=organization.slug,
-            time_zone=organization.time_zone,
-            country=organization.country,
-            currency=organization.currency,
-            settings=organization.settings,
-            created_at=organization.created_at,
-            stripe_plan=organization.stripe_plan,
-            stripe_customer_id=organization.stripe_customer_id,
-            default_schedule_id=organization.default_schedule_id,
-            public_scheduler_configurations=organization.public_scheduler_configurations,
-            tag=organization.tag,
-            seats=organization.seats,
-            addons=organization.addons,
-        )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    return OrganizationResponse(
+        id=organization.id,
+        name=organization.name,
+        slug=organization.slug,
+        time_zone=organization.time_zone,
+        country=organization.country,
+        currency=organization.currency,
+        settings=organization.settings,
+        created_at=organization.created_at,
+        stripe_plan=organization.stripe_plan,
+        stripe_customer_id=organization.stripe_customer_id,
+        default_schedule_id=organization.default_schedule_id,
+        public_scheduler_configurations=organization.public_scheduler_configurations,
+        tag=organization.tag,
+        seats=organization.seats,
+        addons=organization.addons,
+    )
 
 
 @router.get("/", response_model=list[OrganizationResponse])

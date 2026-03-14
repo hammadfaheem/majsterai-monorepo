@@ -21,6 +21,7 @@ import { ScenariosPage } from '@/ui/pages/ScenariosPage'
 import { BusinessInformationPage } from '@/ui/pages/train-agent/BusinessInformationPage'
 import { PoliciesPage } from '@/ui/pages/train-agent/PoliciesPage'
 import { FAQsPage } from '@/ui/pages/train-agent/FAQsPage'
+import { GreetingClosingPage } from '@/ui/pages/train-agent/GreetingClosingPage'
 import { TransfersPage } from '@/ui/pages/TransfersPage'
 import { SchedulesPage } from '@/ui/pages/SchedulesPage'
 import { DepartmentsPage } from '@/ui/pages/DepartmentsPage'
@@ -69,6 +70,7 @@ export function Router() {
           <Route path="services" element={<ServicesPage />} />
           <Route path="scenarios" element={<ScenariosPage />} />
           <Route path="policies" element={<PoliciesPage />} />
+          <Route path="greeting-closing" element={<GreetingClosingPage />} />
           <Route path="faqs" element={<FAQsPage />} />
         </Route>
         <Route path="services" element={<Navigate to="/train-agent/services" replace />} />
