@@ -3,9 +3,12 @@
 import uuid
 from typing import Any
 
-from ...domain.agent.entity import Agent as AgentEntity
 from ...domain.call_history.entity import CallHistory as CallHistoryEntity
-from ...infrastructure.database.repositories import AgentRepository, CallHistoryRepository
+from ...infrastructure.database.repositories import (
+    AgentRepository,
+    CallHistoryRepository,
+    OrganizationRepository,
+)
 from ...infrastructure.livekit.service import LiveKitService
 from ...shared.exceptions import NotFoundError
 from ...db.database import utc_now_ms
@@ -20,11 +23,13 @@ class CreateRoomUseCase:
         call_history_repo: CallHistoryRepository,
         livekit_service: LiveKitService,
         livekit_url: str,
+        org_repo: OrganizationRepository | None = None,
     ):
         self.agent_repo = agent_repo
         self.call_history_repo = call_history_repo
         self.livekit_service = livekit_service
         self.livekit_url = livekit_url
+        self.org_repo = org_repo
 
     async def execute(
         self,
@@ -44,12 +49,20 @@ class CreateRoomUseCase:
         if agent is None or agent.is_deleted():
             raise NotFoundError("Agent not found for this organization")
 
+        # Fetch org name for greeting/closing interpolation (metadata mode)
+        org_name = ""
+        if self.org_repo:
+            org = await self.org_repo.get_by_id(org_id)
+            if org:
+                org_name = org.name or ""
+
         # Generate unique room name
         room_name = f"majster-{org_id[:8]}-{uuid.uuid4().hex[:8]}"
 
         # Build metadata (like SOFi does)
         metadata = {
             "org_id": org_id,
+            "org_name": org_name,
             "org_prompt": agent.prompt or "You are a helpful voice AI assistant.",
             "agent_name": agent.name,
             "extra_prompt": agent.extra_prompt,

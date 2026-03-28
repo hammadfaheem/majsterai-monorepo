@@ -12,8 +12,10 @@ from ...db.database import get_db
 from ...infrastructure.database.repositories import (
     AgentRepository,
     CallHistoryRepository,
+    OrganizationRepository,
     SQLAlchemyAgentRepository,
     SQLAlchemyCallHistoryRepository,
+    SQLAlchemyOrganizationRepository,
 )
 from ...infrastructure.livekit.service import LiveKitService
 from ...shared.exceptions import NotFoundError
@@ -56,6 +58,11 @@ def get_call_history_repo(db: AsyncSession = Depends(get_db)) -> CallHistoryRepo
     return SQLAlchemyCallHistoryRepository(db)
 
 
+def get_org_repo(db: AsyncSession = Depends(get_db)) -> OrganizationRepository:
+    """Dependency to get organization repository."""
+    return SQLAlchemyOrganizationRepository(db)
+
+
 def get_livekit_service() -> LiveKitService:
     """Dependency to get LiveKit service."""
     return LiveKitService(
@@ -70,6 +77,7 @@ async def create_room(
     data: CreateRoomRequest,
     agent_repo: AgentRepository = Depends(get_agent_repo),
     call_history_repo: CallHistoryRepository = Depends(get_call_history_repo),
+    org_repo: OrganizationRepository = Depends(get_org_repo),
     livekit_service: LiveKitService = Depends(get_livekit_service),
 ) -> dict[str, Any]:
     """
@@ -85,6 +93,7 @@ async def create_room(
         call_history_repo=call_history_repo,
         livekit_service=livekit_service,
         livekit_url=settings.livekit_url,
+        org_repo=org_repo,
     )
 
     try:
