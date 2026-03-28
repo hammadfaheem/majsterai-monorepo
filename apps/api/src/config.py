@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://majsterai:majsterai_dev@localhost:5432/majsterai"
 
+    # Auth
+    jwt_secret: str = "change-this-secret-in-production"
+    jwt_expiration_hours: int = 24
+
     # LiveKit
     livekit_url: str = "wss://your-project.livekit.cloud"
     livekit_api_key: str = ""
@@ -34,8 +38,12 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
 
-    # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # CORS – add production origins via CORS_ORIGINS env var (comma-separated)
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+    ]
 
     # Platform admin: set this email to grant SUPERADMIN role on startup
     superadmin_email: str | None = None

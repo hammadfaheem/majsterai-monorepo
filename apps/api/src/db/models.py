@@ -1,8 +1,8 @@
 """SQLAlchemy database models based on Sophie schema."""
 
 import uuid
-from datetime import datetime
-from typing import Any, Optional
+from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import Float, Integer, JSON, BigInteger, Boolean, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -15,7 +15,7 @@ def generate_uuid() -> str:
 
 def utc_now_ms() -> int:
     """Get current UTC timestamp in milliseconds."""
-    return int(datetime.utcnow().timestamp() * 1000)
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
 class Base(DeclarativeBase):
@@ -156,7 +156,7 @@ class Membership(Base):
 
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", back_populates="memberships")
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="memberships")
+    user: Mapped["User | None"] = relationship("User", back_populates="memberships")
     unavailabilities: Mapped[list["MembershipUnavailability"]] = relationship(
         "MembershipUnavailability", back_populates="membership"
     )

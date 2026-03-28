@@ -1,5 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
+import { store } from '@/store'
+import { logout } from '@/store/authSlice'
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export const apiClient = axios.create({
@@ -19,9 +22,7 @@ apiClient.interceptors.request.use(
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 // Response interceptor: Handle errors globally
@@ -29,18 +30,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('auth_token')
-      // Could redirect to login page here if needed
-      window.location.href = '/login'
+      // Unauthorized – clear Redux auth state (also clears localStorage via authSlice)
+      // ProtectedRoute will redirect to /login once token is cleared
+      store.dispatch(logout())
     }
-    
-    // Extract error message
+
     const errorMessage =
       (error.response?.data as { detail?: string })?.detail ||
       error.message ||
       'An error occurred'
-    
+
     return Promise.reject(new Error(errorMessage))
   }
 )

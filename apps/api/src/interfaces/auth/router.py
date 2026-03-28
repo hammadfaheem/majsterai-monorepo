@@ -1,7 +1,8 @@
 """Authentication routes."""
 
+from datetime import datetime, timedelta, timezone
+
 import jwt
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...application.auth.register_with_org import RegisterWithOrgUseCase
 from ...application.user.authenticate_user import AuthenticateUserUseCase
 from ...application.user.get_user import GetUserUseCase
+from ...config import get_settings
 from ...db.database import get_db
 from ...domain.user.entity import User as UserEntity
 from ...infrastructure.database.repositories import (
@@ -21,12 +23,10 @@ from ...infrastructure.database.repositories import (
     SQLAlchemyUserRepository,
     UserRepository,
 )
+
 router = APIRouter()
 
-# JWT secret (should be in config)
-JWT_SECRET = "your-secret-key-change-in-production"
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24
 
 
 def get_user_repo(db: AsyncSession = Depends(get_db)) -> UserRepository:
@@ -90,15 +90,16 @@ async def get_current_user_dep(
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
     token = authorization.replace("Bearer ", "")
+    settings = get_settings()
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.ExpiredSignatureError as exc:
+        raise HTTPException(status_code=401, detail="Token expired") from exc
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
     use_case = GetUserUseCase(user_repo)
     user = await use_case.execute(user_id)
     if not user:
@@ -124,9 +125,10 @@ class AuthResponse(BaseModel):
 
 def create_access_token(user_id: str) -> str:
     """Create JWT access token."""
-    expiration = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    settings = get_settings()
+    expiration = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiration_hours)
     payload = {"sub": user_id, "exp": expiration}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, settings.jwt_secret, algorithm=JWT_ALGORITHM)
 
 
 @router.post("/register", response_model=AuthResponse)
@@ -154,19 +156,19 @@ async def register(
             country=data.country,
             currency=data.currency or "USD",
         )
-        access_token = create_access_token(user.id)
-        return AuthResponse(
-            access_token=access_token,
-            user=UserResponse(
-                id=user.id,
-                email=user.email,
-                name=user.name,
-                created_at=user.created_at,
-                role=user.role,
-            ),
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    access_token = create_access_token(user.id)
+    return AuthResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            created_at=user.created_at,
+            role=user.role,
+        ),
+    )
 
 
 @router.post("/login", response_model=AuthResponse)

@@ -2,7 +2,7 @@
 
 import bcrypt
 
-from ...db.database import generate_uuid, utc_now_ms
+from ...db.models import generate_uuid, utc_now_ms
 from ...domain.user.entity import User as UserEntity
 from ...domain.membership.entity import Membership as MembershipEntity
 from ...infrastructure.database.repositories import (
