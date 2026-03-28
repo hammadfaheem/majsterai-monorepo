@@ -66,7 +66,6 @@ class Organization(Base):
     )
     leads: Mapped[list["Lead"]] = relationship("Lead", back_populates="organization")
     inquiries: Mapped[list["Inquiry"]] = relationship("Inquiry", back_populates="organization")
-    transcripts: Mapped[list["Transcript"]] = relationship("Transcript", back_populates="organization")
 
 
 class Agent(Base):
@@ -140,7 +139,7 @@ class Membership(Base):
     user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("user.id"))  # nullable for pending invites
 
     # Role: owner, admin, member
-    role: Mapped[str] = mapped_column(String(20), default="member", nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default="USER", nullable=False)  # OWNER, ADMIN, USER
 
     # Sophiie: invite & profile
     invited_email: Mapped[str | None] = mapped_column(String(255))
@@ -217,6 +216,8 @@ class AgentActiveSession(Base):
     __tablename__ = "agent_active_session"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    org_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("organization.id"))
+    agent_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"))
     room_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     call_id: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(20), default="active")  # active, completed, error
@@ -303,9 +304,12 @@ class Schedule(Base):
     __tablename__ = "schedule"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organization.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     time_zone: Mapped[str] = mapped_column(String(50), default="UTC")
-    department_id: Mapped[int | None] = mapped_column(Integer)  # FK added after Department exists
+    department_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("department.id"))
+    created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
+    updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
 
 
 class Department(Base):
@@ -386,7 +390,7 @@ class Appointment(Base):
     end: Mapped[int] = mapped_column(BigInteger, nullable=False)
     title: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(30), default="scheduled")  # scheduled, completed, cancelled, no_show
+    status: Mapped[str] = mapped_column(String(30), default="PENDING")  # PENDING, CONFIRMED, IN_PROGRESS, COMPLETE, CANCELLED
     lead_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("lead.id"))
     inquiry_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("inquiry.id"))
     trade_service_id: Mapped[int | None] = mapped_column(Integer)  # FK in Phase 4
@@ -548,7 +552,9 @@ class Invoice(Base):
     reference: Mapped[str | None] = mapped_column(String(255))
     notes: Mapped[str | None] = mapped_column(Text)
     accept_credit_card: Mapped[bool] = mapped_column(Boolean, default=True)
-    reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    enable_overdue_reminder: Mapped[bool] = mapped_column(Boolean, default=False)
+    enable_due_reminder: Mapped[bool] = mapped_column(Boolean, default=False)
+    enable_paid_reminder: Mapped[bool] = mapped_column(Boolean, default=False)
     approved_at: Mapped[int | None] = mapped_column(BigInteger)
     sent_at: Mapped[int | None] = mapped_column(BigInteger)
     external_id: Mapped[str | None] = mapped_column(String(255))
@@ -653,7 +659,6 @@ class CallHistory(Base):
 
     # AI-generated data
     summary: Mapped[str | None] = mapped_column(Text)
-    transcript: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     analyzed_data: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     # Sophiie extensions
     twilio_call_sid: Mapped[str | None] = mapped_column(String(255))
@@ -684,32 +689,36 @@ class Lead(Base):
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organization.id"), nullable=False)
 
     # Contact information
+    first_name: Mapped[str | None] = mapped_column(String(255))
+    last_name: Mapped[str | None] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(20))
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Lead details
     status: Mapped[str] = mapped_column(
-        String(20), default="new"
-    )  # new, contacted, qualified, converted, lost
-    source: Mapped[str | None] = mapped_column(String(50))  # web, phone, referral, etc.
+        String(20), default="PENDING"
+    )  # PENDING, HIRED, ARCHIVED
+    source: Mapped[str | None] = mapped_column(String(50))
 
     # Tracking
     last_inquiry_date: Mapped[int | None] = mapped_column(BigInteger)
-    last_contact_date: Mapped[int | None] = mapped_column(BigInteger)
+    last_inquiry_id: Mapped[str | None] = mapped_column(String(36))
 
-    # Sophiie Phase 6
+    # Sophiie fields
     suburb: Mapped[str | None] = mapped_column(String(255))
     business_name: Mapped[str | None] = mapped_column(String(255))
     socials: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     is_phone_valid: Mapped[bool] = mapped_column(Boolean, default=False)
     default_lead_address_id: Mapped[int | None] = mapped_column(Integer)
-    last_inquiry_id: Mapped[str | None] = mapped_column(String(36))
     auto_reply_sms: Mapped[bool] = mapped_column(Boolean, default=False)
     has_flagged_inquiry: Mapped[bool] = mapped_column(Boolean, default=False)
     batch_id: Mapped[str | None] = mapped_column(String(36))
     is_sample: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Unread counters
+    unread_messages: Mapped[int] = mapped_column(Integer, default=0)
+    unread_calls: Mapped[int] = mapped_column(Integer, default=0)
+    unread_emails: Mapped[int] = mapped_column(Integer, default=0)
 
     # Additional data
     meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, name="metadata")
@@ -760,6 +769,7 @@ class Inquiry(Base):
 
     # Timestamps
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
+    updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
 
     # Relationships
     lead: Mapped["Lead"] = relationship("Lead", back_populates="inquiries")
@@ -775,10 +785,11 @@ class Activity(Base):
     lead_id: Mapped[str] = mapped_column(String(36), ForeignKey("lead.id"), nullable=False)
 
     # Activity details
-    type: Mapped[str] = mapped_column(String(50), nullable=False)  # call, email, meeting, note
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    reference_id: Mapped[str | None] = mapped_column(String(36))
+    event: Mapped[str] = mapped_column(String(100), nullable=False)  # CALL_TO_SOPHIIE, SMS_*, EMAIL_*, etc.
+    data: Mapped[str | None] = mapped_column(Text)
     json_data: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    reference_id: Mapped[str | None] = mapped_column(String(36))
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("user.id"))
 
     # Additional data
     meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, name="metadata")
@@ -797,10 +808,11 @@ class Note(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     lead_id: Mapped[str] = mapped_column(String(36), ForeignKey("lead.id"), nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("user.id"))
     appointment_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("appointment.id"))
 
     # Note content
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Timestamps
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
@@ -834,7 +846,7 @@ class Tag(Base):
     tag_base_id: Mapped[str] = mapped_column(String(36), ForeignKey("tag_base.id"), nullable=False)
     inquiry_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("inquiry.id"))
     lead_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("lead.id"))
-    org_notification_recipient_id: Mapped[str | None] = mapped_column(String(36))
+    org_notification_recipient_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("org_notification_recipient.id"))
     member_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("membership.id"))
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
 
@@ -1029,6 +1041,7 @@ class OrgNotificationRecipient(Base):
     __tablename__ = "org_notification_recipient"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organization.id"), nullable=False)
     member_id: Mapped[str] = mapped_column(String(36), ForeignKey("membership.id"), nullable=False)
     sms: Mapped[str | None] = mapped_column(String(20))
     email: Mapped[str | None] = mapped_column(String(255))
@@ -1049,7 +1062,7 @@ class Reminder(Base):
     datetime: Mapped[int | None] = mapped_column(BigInteger)
     notes: Mapped[str | None] = mapped_column(Text)
     notes_type: Mapped[str | None] = mapped_column(String(20))
-    priority: Mapped[int | None] = mapped_column(Integer)
+    priority: Mapped[str | None] = mapped_column(String(20))  # LOW, MEDIUM, HIGH
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
 
@@ -1076,16 +1089,6 @@ class Token(Base):
     identifier: Mapped[str] = mapped_column(String(255), nullable=False)
     code: Mapped[str | None] = mapped_column(String(255))
     data: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    expires: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
-
-
-class VerificationToken(Base):
-    __tablename__ = "verification_token"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    identifier: Mapped[str] = mapped_column(String(255), nullable=False)
-    token: Mapped[str] = mapped_column(String(255), nullable=False)
     expires: Mapped[int] = mapped_column(BigInteger, nullable=False)
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
 
@@ -1117,26 +1120,14 @@ class WebhookSubscription(Base):
 
 
 class Transcript(Base):
-    """Transcript - Full call transcripts with segments."""
+    """Stores conversation transcripts separately for efficient storage."""
 
     __tablename__ = "transcript"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     room_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organization.id"), nullable=False)
-
-    # Transcript content
-    transcript: Mapped[str] = mapped_column(Text, nullable=False)
-    segments: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # Timestamped segments
-
-    # Analysis
-    sentiment: Mapped[str | None] = mapped_column(String(20))  # positive, neutral, negative
-    keywords: Mapped[list[str] | None] = mapped_column(JSON)
-    summary: Mapped[str | None] = mapped_column(Text)
+    transcript: Mapped[list[Any] | None] = mapped_column(JSON)  # JSON array of transcript segments
 
     # Timestamps
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
-
-    # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="transcripts")
