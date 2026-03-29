@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Provider } from 'react-redux'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
+import { NuqsAdapter } from 'nuqs/adapters/react-router/v6'
 import { store } from './store'
 import { queryClient } from './lib/react-query'
 import { useUIStore } from './store/ui.store'
@@ -22,12 +23,14 @@ function App() {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <ThemeSync />
-          <AuthInit>
-            <OrganizationProvider>
-              <Router />
-            </OrganizationProvider>
-          </AuthInit>
+          <NuqsAdapter>
+            <ThemeSync />
+            <AuthInit>
+              <OrganizationProvider>
+                <Router />
+              </OrganizationProvider>
+            </AuthInit>
+          </NuqsAdapter>
         </BrowserRouter>
       </QueryClientProvider>
     </Provider>
