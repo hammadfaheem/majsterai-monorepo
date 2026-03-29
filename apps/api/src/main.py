@@ -10,6 +10,7 @@ from .config import get_settings
 from .db.database import async_session_maker, init_db
 from .infrastructure.database.repositories import SQLAlchemyUserRepository
 from .interfaces.admin.router import router as admin_router
+from .interfaces.calendar.router import router as calendar_router
 from .interfaces.agent.router import router as agents_router
 from .interfaces.appointment.router import router as appointment_router
 from .interfaces.auth.router import router as auth_router
@@ -117,6 +118,7 @@ app.include_router(reminder_router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(lead_address_router, prefix="/api/lead-addresses", tags=["lead-addresses"])
 app.include_router(availability_router, prefix="/api/availabilities", tags=["availabilities"])
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
+app.include_router(calendar_router, prefix="/api/calendar", tags=["calendar"])
 app.include_router(
     notification_type_router, prefix="/api/notification-types", tags=["notification-types"]
 )

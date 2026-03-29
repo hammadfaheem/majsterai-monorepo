@@ -29,5 +29,7 @@ class Appointment:
     customer_cancellation_reason: str | None
     summary: str | None
     photos: list[Any] | None
+    reference_id: str | None
     created_at: int
     updated_at: int
+    deleted_at: int | None

@@ -31,6 +31,7 @@ import { AdminGuard } from '@/ui/components/AdminGuard'
 import { AdminPage } from '@/ui/pages/AdminPage'
 import { AdminOrganizationsPage } from '@/ui/pages/AdminOrganizationsPage'
 import { AdminUsersPage } from '@/ui/pages/AdminUsersPage'
+import { CalendarSettingsPage } from '@/ui/pages/CalendarSettingsPage'
 
 export function Router() {
   const token = useAppSelector((state) => state.auth.token)
@@ -83,6 +84,7 @@ export function Router() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="test-agent" element={<Navigate to="/train-agent" replace />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="settings/calendar" element={<CalendarSettingsPage />} />
         <Route path="admin" element={<AdminGuard />}>
           <Route index element={<Navigate to="/admin/organizations" replace />} />
           <Route element={<AdminPage />}>

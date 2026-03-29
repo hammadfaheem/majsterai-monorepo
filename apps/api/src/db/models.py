@@ -364,9 +364,11 @@ class SelectedCalendar(Base):
     __tablename__ = "selected_calendar"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    credential_id: Mapped[str | None] = mapped_column(String(255))  # FK when credential table exists
+    org_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("organization.id"))
+    credential_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("credential.id"))
     calendar_id: Mapped[str | None] = mapped_column(String(255))
     calendar_name: Mapped[str | None] = mapped_column(String(255))
+    integration: Mapped[str | None] = mapped_column(String(20))  # google, outlook
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active_for_conflict_check: Mapped[bool] = mapped_column(Boolean, default=True)
     member_id: Mapped[str] = mapped_column(String(36), ForeignKey("membership.id"), nullable=False)
@@ -374,6 +376,8 @@ class SelectedCalendar(Base):
     resource_id: Mapped[str | None] = mapped_column(String(255))
     channel_expiration: Mapped[int | None] = mapped_column(BigInteger)
     last_synced_at: Mapped[int | None] = mapped_column(BigInteger)
+    # Incremental sync token — store Google's nextSyncToken here after every pull
+    next_async_token: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
 
@@ -404,8 +408,14 @@ class Appointment(Base):
     customer_cancellation_reason: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text)
     photos: Mapped[list[Any] | None] = mapped_column(JSON)
+    # External calendar sync — stores Google/Outlook event ID after push-sync.
+    # Used for deduplication: if a pulled external event has the same id as
+    # appointment.reference_id, it's already in the DB — skip it.
+    reference_id: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=utc_now_ms, onupdate=utc_now_ms)
+    # Soft delete — never hard delete; needed for Google sync (cancelled events must find the row)
+    deleted_at: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class AppointmentAssignee(Base):

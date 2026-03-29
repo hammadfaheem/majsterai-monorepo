@@ -53,6 +53,7 @@ from ...db.models import (
     OrgNotificationRecipient,
     Schedule,
     Scenario,
+    SelectedCalendar,
     Transcript,
     Transfer,
     TagBase,
@@ -863,6 +864,8 @@ class AppointmentRepository(ABC):
         lead_id: str | None = None,
         start_from: int | None = None,
         end_before: int | None = None,
+        statuses: list[str] | None = None,
+        include_deleted: bool = False,
     ) -> list[AppointmentEntity]:
         pass
 
@@ -871,11 +874,19 @@ class AppointmentRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_reference_id(self, reference_id: str) -> AppointmentEntity | None:
+        pass
+
+    @abstractmethod
     async def create(self, appointment: AppointmentEntity) -> AppointmentEntity:
         pass
 
     @abstractmethod
     async def update(self, appointment: AppointmentEntity) -> AppointmentEntity:
+        pass
+
+    @abstractmethod
+    async def soft_delete(self, appointment_id: str, deleted_at: int) -> bool:
         pass
 
     @abstractmethod
@@ -1025,8 +1036,10 @@ class SQLAlchemyAppointmentRepository(AppointmentRepository):
             customer_cancellation_reason=model.customer_cancellation_reason,
             summary=model.summary,
             photos=model.photos,
+            reference_id=model.reference_id,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
         )
 
     async def list_by_org_id(
@@ -1037,20 +1050,35 @@ class SQLAlchemyAppointmentRepository(AppointmentRepository):
         lead_id: str | None = None,
         start_from: int | None = None,
         end_before: int | None = None,
+        statuses: list[str] | None = None,
+        include_deleted: bool = False,
     ) -> list[AppointmentEntity]:
         q = select(Appointment).where(Appointment.org_id == org_id)
+        if not include_deleted:
+            q = q.where(Appointment.deleted_at.is_(None))
         if lead_id is not None:
             q = q.where(Appointment.lead_id == lead_id)
         if start_from is not None:
             q = q.where(Appointment.start >= start_from)
         if end_before is not None:
             q = q.where(Appointment.end <= end_before)
+        if statuses:
+            q = q.where(Appointment.status.in_(statuses))
         q = q.order_by(Appointment.start.desc()).limit(limit).offset(offset)
         result = await self.session.execute(q)
         return [self._to_entity(m) for m in result.scalars().all()]
 
     async def get_by_id(self, appointment_id: str) -> AppointmentEntity | None:
-        result = await self.session.execute(select(Appointment).where(Appointment.id == appointment_id))
+        result = await self.session.execute(
+            select(Appointment).where(Appointment.id == appointment_id)
+        )
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
+    async def get_by_reference_id(self, reference_id: str) -> AppointmentEntity | None:
+        result = await self.session.execute(
+            select(Appointment).where(Appointment.reference_id == reference_id)
+        )
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
@@ -1077,6 +1105,7 @@ class SQLAlchemyAppointmentRepository(AppointmentRepository):
             customer_cancellation_reason=appointment.customer_cancellation_reason,
             summary=appointment.summary,
             photos=appointment.photos,
+            reference_id=appointment.reference_id,
             created_at=appointment.created_at,
             updated_at=appointment.updated_at,
         )
@@ -1085,7 +1114,9 @@ class SQLAlchemyAppointmentRepository(AppointmentRepository):
         return self._to_entity(model)
 
     async def update(self, appointment: AppointmentEntity) -> AppointmentEntity:
-        result = await self.session.execute(select(Appointment).where(Appointment.id == appointment.id))
+        result = await self.session.execute(
+            select(Appointment).where(Appointment.id == appointment.id)
+        )
         model = result.scalar_one()
         model.start = appointment.start
         model.end = appointment.end
@@ -1105,12 +1136,26 @@ class SQLAlchemyAppointmentRepository(AppointmentRepository):
         model.customer_cancellation_reason = appointment.customer_cancellation_reason
         model.summary = appointment.summary
         model.photos = appointment.photos
+        model.reference_id = appointment.reference_id
         model.updated_at = appointment.updated_at
         await self.session.flush()
         return self._to_entity(model)
 
+    async def soft_delete(self, appointment_id: str, deleted_at: int) -> bool:
+        result = await self.session.execute(
+            select(Appointment).where(Appointment.id == appointment_id)
+        )
+        model = result.scalar_one_or_none()
+        if not model:
+            return False
+        model.deleted_at = deleted_at
+        await self.session.flush()
+        return True
+
     async def delete(self, appointment_id: str) -> bool:
-        result = await self.session.execute(delete(Appointment).where(Appointment.id == appointment_id))
+        result = await self.session.execute(
+            delete(Appointment).where(Appointment.id == appointment_id)
+        )
         await self.session.flush()
         return result.rowcount is not None and result.rowcount > 0
 
@@ -2543,3 +2588,155 @@ class SQLAlchemyActivityRepository(ActivityRepository):
         )
         models = result.scalars().all()
         return [self._to_entity(m) for m in models]
+
+
+class SelectedCalendarRepository(ABC):
+    """Abstract repository for selected calendars."""
+
+    @abstractmethod
+    async def list_by_member_id(self, member_id: str) -> list[dict]:
+        pass
+
+    @abstractmethod
+    async def list_by_org_id(self, org_id: str) -> list[dict]:
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, calendar_id: int) -> dict | None:
+        pass
+
+    @abstractmethod
+    async def upsert(self, data: dict) -> dict:
+        pass
+
+    @abstractmethod
+    async def set_default(self, calendar_id: int, member_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete(self, calendar_id: int) -> bool:
+        pass
+
+    @abstractmethod
+    async def update_sync_token(self, calendar_id: int, token: str) -> None:
+        pass
+
+
+class SQLAlchemySelectedCalendarRepository(SelectedCalendarRepository):
+    """SQLAlchemy implementation of SelectedCalendarRepository."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    def _to_dict(self, model: SelectedCalendar) -> dict:
+        return {
+            "id": model.id,
+            "org_id": model.org_id,
+            "credential_id": model.credential_id,
+            "calendar_id": model.calendar_id,
+            "calendar_name": model.calendar_name,
+            "integration": model.integration,
+            "is_default": model.is_default,
+            "is_active_for_conflict_check": model.is_active_for_conflict_check,
+            "member_id": model.member_id,
+            "channel_id": model.channel_id,
+            "resource_id": model.resource_id,
+            "channel_expiration": model.channel_expiration,
+            "last_synced_at": model.last_synced_at,
+            "next_async_token": model.next_async_token,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def list_by_member_id(self, member_id: str) -> list[dict]:
+        result = await self.session.execute(
+            select(SelectedCalendar)
+            .where(SelectedCalendar.member_id == member_id)
+            .order_by(SelectedCalendar.is_default.desc())
+        )
+        return [self._to_dict(m) for m in result.scalars().all()]
+
+    async def list_by_org_id(self, org_id: str) -> list[dict]:
+        result = await self.session.execute(
+            select(SelectedCalendar)
+            .where(SelectedCalendar.org_id == org_id)
+            .order_by(SelectedCalendar.is_default.desc())
+        )
+        return [self._to_dict(m) for m in result.scalars().all()]
+
+    async def get_by_id(self, calendar_id: int) -> dict | None:
+        result = await self.session.execute(
+            select(SelectedCalendar).where(SelectedCalendar.id == calendar_id)
+        )
+        model = result.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def upsert(self, data: dict) -> dict:
+        # Try to find existing by (member_id, calendar_id) pair
+        result = await self.session.execute(
+            select(SelectedCalendar).where(
+                SelectedCalendar.member_id == data["member_id"],
+                SelectedCalendar.calendar_id == data.get("calendar_id"),
+            )
+        )
+        model = result.scalar_one_or_none()
+        if model is None:
+            from ...db.database import utc_now_ms
+            now = utc_now_ms()
+            model = SelectedCalendar(
+                org_id=data.get("org_id"),
+                credential_id=data.get("credential_id"),
+                calendar_id=data.get("calendar_id"),
+                calendar_name=data.get("calendar_name"),
+                integration=data.get("integration"),
+                is_default=data.get("is_default", False),
+                is_active_for_conflict_check=data.get(
+                    "is_active_for_conflict_check", True
+                ),
+                member_id=data["member_id"],
+                created_at=now,
+                updated_at=now,
+            )
+            self.session.add(model)
+        else:
+            if "calendar_name" in data:
+                model.calendar_name = data["calendar_name"]
+            if "integration" in data:
+                model.integration = data["integration"]
+            if "is_default" in data:
+                model.is_default = data["is_default"]
+            if "is_active_for_conflict_check" in data:
+                model.is_active_for_conflict_check = data[
+                    "is_active_for_conflict_check"
+                ]
+            if "credential_id" in data:
+                model.credential_id = data["credential_id"]
+        await self.session.flush()
+        await self.session.refresh(model)
+        return self._to_dict(model)
+
+    async def set_default(self, calendar_id: int, member_id: str) -> bool:
+        # Clear all defaults for this member first
+        all_result = await self.session.execute(
+            select(SelectedCalendar).where(SelectedCalendar.member_id == member_id)
+        )
+        for m in all_result.scalars().all():
+            m.is_default = m.id == calendar_id
+        await self.session.flush()
+        return True
+
+    async def delete(self, calendar_id: int) -> bool:
+        result = await self.session.execute(
+            delete(SelectedCalendar).where(SelectedCalendar.id == calendar_id)
+        )
+        await self.session.flush()
+        return result.rowcount is not None and result.rowcount > 0
+
+    async def update_sync_token(self, calendar_id: int, token: str) -> None:
+        result = await self.session.execute(
+            select(SelectedCalendar).where(SelectedCalendar.id == calendar_id)
+        )
+        model = result.scalar_one_or_none()
+        if model:
+            model.next_async_token = token
+            await self.session.flush()

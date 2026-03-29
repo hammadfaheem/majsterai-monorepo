@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # Platform admin: set this email to grant SUPERADMIN role on startup
     superadmin_email: str | None = None
 
+    # Google Calendar OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

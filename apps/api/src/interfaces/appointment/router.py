@@ -24,7 +24,7 @@ class AppointmentCreate(BaseModel):
     end: int
     title: str | None = None
     description: str | None = None
-    status: str = "scheduled"
+    status: str = "PENDING"
     lead_id: str | None = None
     inquiry_id: str | None = None
     trade_service_id: int | None = None
@@ -37,6 +37,7 @@ class AppointmentCreate(BaseModel):
     customer_notes: str | None = None
     summary: str | None = None
     photos: list | None = None
+    reference_id: str | None = None
 
 
 class AppointmentUpdate(BaseModel):
@@ -50,6 +51,8 @@ class AppointmentUpdate(BaseModel):
     notes: str | None = None
     customer_notes: str | None = None
     summary: str | None = None
+    reference_id: str | None = None
+    is_rescheduled: bool | None = None
 
 
 class AppointmentResponse(BaseModel):
@@ -74,8 +77,10 @@ class AppointmentResponse(BaseModel):
     customer_cancellation_reason: str | None
     summary: str | None
     photos: list | None
+    reference_id: str | None
     created_at: int
     updated_at: int
+    deleted_at: int | None
 
     class Config:
         from_attributes = True
@@ -104,8 +109,10 @@ def _to_response(a: AppointmentEntity) -> AppointmentResponse:
         customer_cancellation_reason=a.customer_cancellation_reason,
         summary=a.summary,
         photos=a.photos,
+        reference_id=a.reference_id,
         created_at=a.created_at,
         updated_at=a.updated_at,
+        deleted_at=a.deleted_at,
     )
 
 
@@ -117,9 +124,19 @@ async def list_appointments(
     lead_id: str | None = Query(None),
     start_from: int | None = Query(None, description="Filter from start (Unix ms)"),
     end_before: int | None = Query(None, description="Filter before end (Unix ms)"),
+    statuses: str | None = Query(None, description="Comma-separated status filter"),
     repo: AppointmentRepository = Depends(get_appointment_repo),
 ):
-    items = await repo.list_by_org_id(org_id, limit=limit, offset=offset, lead_id=lead_id, start_from=start_from, end_before=end_before)
+    status_list = [s.strip() for s in statuses.split(",")] if statuses else None
+    items = await repo.list_by_org_id(
+        org_id,
+        limit=limit,
+        offset=offset,
+        lead_id=lead_id,
+        start_from=start_from,
+        end_before=end_before,
+        statuses=status_list,
+    )
     return [_to_response(a) for a in items]
 
 
@@ -156,8 +173,10 @@ async def create_appointment(data: AppointmentCreate, repo: AppointmentRepositor
         customer_cancellation_reason=None,
         summary=data.summary,
         photos=data.photos,
+        reference_id=data.reference_id,
         created_at=now,
         updated_at=now,
+        deleted_at=None,
     )
     created = await repo.create(entity)
     return _to_response(created)
@@ -193,15 +212,26 @@ async def update_appointment(
         existing.customer_notes = data.customer_notes
     if data.summary is not None:
         existing.summary = data.summary
+    if data.reference_id is not None:
+        existing.reference_id = data.reference_id
+    if data.is_rescheduled is not None:
+        existing.is_rescheduled = data.is_rescheduled
     existing.updated_at = now
     updated = await repo.update(existing)
     return _to_response(updated)
 
 
 @router.delete("/{appointment_id}")
-async def delete_appointment(appointment_id: str, repo: AppointmentRepository = Depends(get_appointment_repo)):
+async def delete_appointment(
+    appointment_id: str,
+    hard: bool = Query(False, description="Hard delete (default: soft delete)"),
+    repo: AppointmentRepository = Depends(get_appointment_repo),
+):
     existing = await repo.get_by_id(appointment_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Appointment not found")
-    await repo.delete(appointment_id)
+    if hard:
+        await repo.delete(appointment_id)
+    else:
+        await repo.soft_delete(appointment_id, utc_now_ms())
     return {"message": "Deleted"}

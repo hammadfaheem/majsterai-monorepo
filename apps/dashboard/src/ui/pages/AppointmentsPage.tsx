@@ -11,6 +11,8 @@ import { Button } from '@/ui/components/Button'
 import { Input } from '@/ui/components/Input'
 import { Modal } from '@/ui/components/Modal'
 import { FilterBar } from '@/ui/components/FilterBar'
+import { CalendarView } from '@/ui/components/CalendarView'
+import { List, CalendarDays } from 'lucide-react'
 
 interface TradeService {
   id: number
@@ -20,6 +22,7 @@ interface TradeService {
 export function AppointmentsPage() {
   const { currentOrganization } = useOrganization()
   const queryClient = useQueryClient()
+  const [pageView, setPageView] = useState<'list' | 'calendar'>('calendar')
   const [createOpen, setCreateOpen] = useState(false)
   const [createTitle, setCreateTitle] = useState('')
   const [createStart, setCreateStart] = useState('')
@@ -94,6 +97,12 @@ export function AppointmentsPage() {
     })
   }
 
+  const handleCalendarDateSelect = (start: Date, end: Date) => {
+    setCreateStart(start.toISOString().slice(0, 16))
+    setCreateEnd(end.toISOString().slice(0, 16))
+    setCreateOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -103,54 +112,89 @@ export function AppointmentsPage() {
             View and manage scheduled appointments
           </p>
         </div>
-        <Button variant="accent" onClick={() => setCreateOpen(true)}>
-          Create appointment
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+            <button
+              onClick={() => setPageView('calendar')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                pageView === 'calendar'
+                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Calendar
+            </button>
+            <button
+              onClick={() => setPageView('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                pageView === 'list'
+                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              <List className="h-3.5 w-3.5" />
+              List
+            </button>
+          </div>
+          <Button variant="accent" onClick={() => setCreateOpen(true)}>
+            Create appointment
+          </Button>
+        </div>
       </div>
 
-      <FilterBar
-        searchValue=""
-        onSearchChange={() => {}}
-        searchPlaceholder="Filter appointments..."
-        filterOptions={[
-          {
-            label: 'Status',
-            value: statusFilter,
-            options: [
-              { value: '', label: 'All' },
-              { value: 'scheduled', label: 'Scheduled' },
-              { value: 'completed', label: 'Completed' },
-              { value: 'cancelled', label: 'Cancelled' },
-              { value: 'no_show', label: 'No show' },
-            ],
-            onChange: setStatusFilter,
-          },
-        ]}
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming & past</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-slate-500">Loading…</p>
-          ) : filteredAppointments.length === 0 ? (
-            <p className="text-sm text-slate-500">No appointments yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {filteredAppointments.slice(0, 50).map((apt) => (
-                <li key={apt.id} className="flex justify-between text-sm">
-                  <span className="font-medium">{apt.title || 'Untitled'}</span>
-                  <span className="text-slate-500">
-                    {new Date(apt.start).toLocaleString()} – {apt.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {pageView === 'calendar' && currentOrganization?.id ? (
+        <CalendarView
+          orgId={currentOrganization.id}
+          onSelectDate={handleCalendarDateSelect}
+        />
+      ) : (
+        <>
+          <FilterBar
+            searchValue=""
+            onSearchChange={() => {}}
+            searchPlaceholder="Filter appointments..."
+            filterOptions={[
+              {
+                label: 'Status',
+                value: statusFilter,
+                options: [
+                  { value: '', label: 'All' },
+                  { value: 'scheduled', label: 'Scheduled' },
+                  { value: 'completed', label: 'Completed' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: 'no_show', label: 'No show' },
+                ],
+                onChange: setStatusFilter,
+              },
+            ]}
+          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming & past</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p className="text-sm text-slate-500">Loading…</p>
+              ) : filteredAppointments.length === 0 ? (
+                <p className="text-sm text-slate-500">No appointments yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredAppointments.slice(0, 50).map((apt) => (
+                    <li key={apt.id} className="flex justify-between text-sm">
+                      <span className="font-medium">{apt.title || 'Untitled'}</span>
+                      <span className="text-slate-500">
+                        {new Date(apt.start).toLocaleString()} – {apt.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create appointment">
         <form className="space-y-4" onSubmit={handleCreate}>
