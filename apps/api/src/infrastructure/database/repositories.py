@@ -900,6 +900,7 @@ class SQLAlchemyScheduleRepository(ScheduleRepository):
     def _to_entity(self, model: Schedule) -> ScheduleEntity:
         return ScheduleEntity(
             id=model.id,
+            org_id=model.org_id,
             name=model.name,
             time_zone=model.time_zone,
             department_id=model.department_id,
@@ -916,6 +917,7 @@ class SQLAlchemyScheduleRepository(ScheduleRepository):
 
     async def create(self, schedule: ScheduleEntity) -> ScheduleEntity:
         model = Schedule(
+            org_id=schedule.org_id,
             name=schedule.name,
             time_zone=schedule.time_zone,
             department_id=schedule.department_id,
@@ -928,6 +930,7 @@ class SQLAlchemyScheduleRepository(ScheduleRepository):
     async def update(self, schedule: ScheduleEntity) -> ScheduleEntity:
         result = await self.session.execute(select(Schedule).where(Schedule.id == schedule.id))
         model = result.scalar_one()
+        model.org_id = schedule.org_id
         model.name = schedule.name
         model.time_zone = schedule.time_zone
         model.department_id = schedule.department_id

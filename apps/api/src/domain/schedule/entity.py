@@ -8,6 +8,7 @@ class Schedule:
     """Working schedule."""
 
     id: int
+    org_id: str | None
     name: str
     time_zone: str
     department_id: int | None

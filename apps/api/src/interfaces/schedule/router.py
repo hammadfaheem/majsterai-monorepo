@@ -19,6 +19,7 @@ def get_schedule_repo(db: AsyncSession = Depends(get_db)) -> ScheduleRepository:
 
 
 class ScheduleCreate(BaseModel):
+    org_id: str
     name: str
     time_zone: str = "UTC"
     department_id: int | None = None
@@ -32,6 +33,7 @@ class ScheduleUpdate(BaseModel):
 
 class ScheduleResponse(BaseModel):
     id: int
+    org_id: str | None
     name: str
     time_zone: str
     department_id: int | None
@@ -40,29 +42,53 @@ class ScheduleResponse(BaseModel):
         from_attributes = True
 
 
+def _to_response(s: ScheduleEntity) -> ScheduleResponse:
+    return ScheduleResponse(
+        id=s.id,
+        org_id=s.org_id,
+        name=s.name,
+        time_zone=s.time_zone,
+        department_id=s.department_id,
+    )
+
+
 @router.get("/", response_model=list[ScheduleResponse])
 async def list_schedules(repo: ScheduleRepository = Depends(get_schedule_repo)):
     items = await repo.list_all()
-    return [ScheduleResponse(id=s.id, name=s.name, time_zone=s.time_zone, department_id=s.department_id) for s in items]
+    return [_to_response(s) for s in items]
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse)
-async def get_schedule(schedule_id: int, repo: ScheduleRepository = Depends(get_schedule_repo)):
+async def get_schedule(
+    schedule_id: int, repo: ScheduleRepository = Depends(get_schedule_repo)
+):
     s = await repo.get_by_id(schedule_id)
     if not s:
         raise HTTPException(status_code=404, detail="Schedule not found")
-    return ScheduleResponse(id=s.id, name=s.name, time_zone=s.time_zone, department_id=s.department_id)
+    return _to_response(s)
 
 
 @router.post("/", response_model=ScheduleResponse)
-async def create_schedule(data: ScheduleCreate, repo: ScheduleRepository = Depends(get_schedule_repo)):
-    entity = ScheduleEntity(id=0, name=data.name, time_zone=data.time_zone, department_id=data.department_id)
+async def create_schedule(
+    data: ScheduleCreate, repo: ScheduleRepository = Depends(get_schedule_repo)
+):
+    entity = ScheduleEntity(
+        id=0,
+        org_id=data.org_id,
+        name=data.name,
+        time_zone=data.time_zone,
+        department_id=data.department_id,
+    )
     created = await repo.create(entity)
-    return ScheduleResponse(id=created.id, name=created.name, time_zone=created.time_zone, department_id=created.department_id)
+    return _to_response(created)
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse)
-async def update_schedule(schedule_id: int, data: ScheduleUpdate, repo: ScheduleRepository = Depends(get_schedule_repo)):
+async def update_schedule(
+    schedule_id: int,
+    data: ScheduleUpdate,
+    repo: ScheduleRepository = Depends(get_schedule_repo),
+):
     existing = await repo.get_by_id(schedule_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -73,11 +99,13 @@ async def update_schedule(schedule_id: int, data: ScheduleUpdate, repo: Schedule
     if data.department_id is not None:
         existing.department_id = data.department_id
     updated = await repo.update(existing)
-    return ScheduleResponse(id=updated.id, name=updated.name, time_zone=updated.time_zone, department_id=updated.department_id)
+    return _to_response(updated)
 
 
 @router.delete("/{schedule_id}")
-async def delete_schedule(schedule_id: int, repo: ScheduleRepository = Depends(get_schedule_repo)):
+async def delete_schedule(
+    schedule_id: int, repo: ScheduleRepository = Depends(get_schedule_repo)
+):
     existing = await repo.get_by_id(schedule_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Schedule not found")
