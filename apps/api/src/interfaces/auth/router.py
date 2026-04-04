@@ -9,6 +9,9 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Re-use the app-level limiter instance (registered on app.state in main.py).
+# SlowAPIMiddleware reads app.state.limiter; all decorators must use the same object.
+
 from ...application.auth.register_with_org import RegisterWithOrgUseCase
 from ...application.user.authenticate_user import AuthenticateUserUseCase
 from ...application.user.get_user import GetUserUseCase

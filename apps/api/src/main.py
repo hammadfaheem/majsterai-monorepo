@@ -6,9 +6,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from .config import get_settings
 from .db.database import async_session_maker, init_db, ping_db
@@ -95,6 +96,9 @@ app = FastAPI(
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
 )
+
+# SlowAPI requires the limiter to be stored on app.state before the middleware runs
+app.state.limiter = Limiter(key_func=get_remote_address)
 
 # Middleware — order matters: added last executes first
 app.add_middleware(LoggingMiddleware)

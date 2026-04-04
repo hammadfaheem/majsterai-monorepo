@@ -6,31 +6,31 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...domain.agent.entity import Agent as AgentEntity
-from ...domain.call_history.entity import CallHistory as CallHistoryEntity
-from ...domain.lead.entity import Activity as ActivityEntity, Inquiry as InquiryEntity, Lead as LeadEntity, Note as NoteEntity
-from ...domain.membership.entity import Membership as MembershipEntity
-from ...domain.membership_unavailability.entity import MembershipUnavailability as MembershipUnavailabilityEntity
-from ...domain.organization.entity import Organization as OrganizationEntity
-from ...domain.appointment.entity import Appointment as AppointmentEntity
-from ...domain.department.entity import Department as DepartmentEntity
-from ...domain.invoice.entity import Invoice as InvoiceEntity
-from ...domain.schedule.entity import Schedule as ScheduleEntity
-from ...domain.scenario.entity import Scenario as ScenarioEntity
-from ...domain.transcript.entity import Transcript as TranscriptEntity
-from ...domain.trade_category.entity import TradeCategory as TradeCategoryEntity
-from ...domain.trade_service.entity import TradeService as TradeServiceEntity
-from ...domain.tag_base.entity import TagBase as TagBaseEntity
-from ...domain.task.entity import Task as TaskEntity
-from ...domain.transfer.entity import Transfer as TransferEntity
-from ...domain.user.entity import User as UserEntity
-from ...domain.reminder.entity import Reminder as ReminderEntity
-from ...domain.notification_type.entity import NotificationType as NotificationTypeEntity
-from ...domain.notification_log.entity import NotificationLog as NotificationLogEntity
-from ...domain.org_notification_recipient.entity import OrgNotificationRecipient as OrgNotificationRecipientEntity
-from ...domain.lead_address.entity import LeadAddress as LeadAddressEntity
-from ...domain.availability.entity import Availability as AvailabilityEntity
-from ...db.models import (
+from ....domain.agent.entity import Agent as AgentEntity
+from ....domain.call_history.entity import CallHistory as CallHistoryEntity
+from ....domain.lead.entity import Activity as ActivityEntity, Inquiry as InquiryEntity, Lead as LeadEntity, Note as NoteEntity
+from ....domain.membership.entity import Membership as MembershipEntity
+from ....domain.membership_unavailability.entity import MembershipUnavailability as MembershipUnavailabilityEntity
+from ....domain.organization.entity import Organization as OrganizationEntity
+from ....domain.appointment.entity import Appointment as AppointmentEntity
+from ....domain.department.entity import Department as DepartmentEntity
+from ....domain.invoice.entity import Invoice as InvoiceEntity
+from ....domain.schedule.entity import Schedule as ScheduleEntity
+from ....domain.scenario.entity import Scenario as ScenarioEntity
+from ....domain.transcript.entity import Transcript as TranscriptEntity
+from ....domain.trade_category.entity import TradeCategory as TradeCategoryEntity
+from ....domain.trade_service.entity import TradeService as TradeServiceEntity
+from ....domain.tag_base.entity import TagBase as TagBaseEntity
+from ....domain.task.entity import Task as TaskEntity
+from ....domain.transfer.entity import Transfer as TransferEntity
+from ....domain.user.entity import User as UserEntity
+from ....domain.reminder.entity import Reminder as ReminderEntity
+from ....domain.notification_type.entity import NotificationType as NotificationTypeEntity
+from ....domain.notification_log.entity import NotificationLog as NotificationLogEntity
+from ....domain.org_notification_recipient.entity import OrgNotificationRecipient as OrgNotificationRecipientEntity
+from ....domain.lead_address.entity import LeadAddress as LeadAddressEntity
+from ....domain.availability.entity import Availability as AvailabilityEntity
+from ....db.models import (
     Activity,
     Agent,
     AgentActiveSession,
@@ -323,7 +323,7 @@ class SQLAlchemyOrganizationRepository(OrganizationRepository):
         """Create a new organization."""
         # Generate UUID if not provided
         if not organization.id:
-            from ...db.database import generate_uuid
+            from ....db.database import generate_uuid
             organization.id = generate_uuid()
         
         model = self._to_model(organization)
@@ -2683,7 +2683,7 @@ class SQLAlchemySelectedCalendarRepository(SelectedCalendarRepository):
         )
         model = result.scalar_one_or_none()
         if model is None:
-            from ...db.database import utc_now_ms
+            from ....db.database import utc_now_ms
             now = utc_now_ms()
             model = SelectedCalendar(
                 org_id=data.get("org_id"),
