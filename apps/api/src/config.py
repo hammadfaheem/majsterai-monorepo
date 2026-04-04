@@ -3,10 +3,13 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env relative to this file (apps/api/src/config.py → apps/api/.env)
 _ENV_FILE = Path(__file__).parent.parent / ".env"
+
+_INSECURE_JWT_SECRET = "change-this-secret-in-production"
 
 
 class Settings(BaseSettings):
@@ -20,13 +23,14 @@ class Settings(BaseSettings):
 
     # Application
     environment: str = "development"
-    debug: bool = True
+    # Defaults to False — must be explicitly set True for local dev
+    debug: bool = False
 
     # Database
     database_url: str = "postgresql://majsterai:majsterai_dev@localhost:5432/majsterai"
 
-    # Auth
-    jwt_secret: str = "change-this-secret-in-production"
+    # Auth — no default; app refuses to start if this is missing or insecure
+    jwt_secret: str
     jwt_expiration_hours: int = 24
 
     # LiveKit
@@ -57,6 +61,30 @@ class Settings(BaseSettings):
     # Google Calendar OAuth
     google_client_id: str = ""
     google_client_secret: str = ""
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def jwt_secret_must_be_secure(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("JWT_SECRET must be set")
+        if v.strip() == _INSECURE_JWT_SECRET:
+            raise ValueError(
+                "JWT_SECRET is still set to the placeholder value. "
+                "Generate a secure random secret (e.g. openssl rand -hex 32) "
+                "and set it in your .env file."
+            )
+        if len(v) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters long")
+        return v
+
+    @model_validator(mode="after")
+    def production_requires_explicit_config(self) -> "Settings":
+        if self.environment == "production":
+            if self.debug:
+                raise ValueError("DEBUG must be False in production")
+            if self.base_url == "https://your-api.example.com":
+                raise ValueError("BASE_URL must be set to the real API URL in production")
+        return self
 
 
 @lru_cache

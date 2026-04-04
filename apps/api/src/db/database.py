@@ -4,14 +4,13 @@ import ssl
 from collections.abc import AsyncGenerator
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, async_sessionmaker, create_async_engine
 
 from ..config import get_settings
 from .models import generate_uuid, utc_now_ms  # re-exported for backwards compatibility
 
-__all__ = ["generate_uuid", "utc_now_ms"]
-
-settings = get_settings()
+__all__ = ["generate_uuid", "utc_now_ms", "engine", "async_session_maker"]
 
 
 def prepare_database_url(url: str) -> tuple[str, bool]:
@@ -36,42 +35,71 @@ def prepare_database_url(url: str) -> tuple[str, bool]:
     return cleaned, needs_ssl
 
 
-# Clean the URL and convert postgresql:// to postgresql+asyncpg://
-raw_url = settings.database_url
-cleaned_url, use_ssl = prepare_database_url(raw_url)
-database_url = cleaned_url.replace("postgresql://", "postgresql+asyncpg://")
+def _build_engine() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """Build the async SQLAlchemy engine from current settings.
 
-# asyncpg requires ssl to be passed as a context object, not via URL params
-connect_args: dict = {"ssl": ssl.create_default_context()} if use_ssl else {}
+    Called once at import time so other modules can import ``engine`` and
+    ``async_session_maker`` as module-level names, but settings are read
+    through the cached ``get_settings()`` so they're always up to date.
+    """
+    settings = get_settings()
+    raw_url = settings.database_url
+    cleaned_url, use_ssl = prepare_database_url(raw_url)
+    database_url = cleaned_url.replace("postgresql://", "postgresql+asyncpg://")
 
-engine = create_async_engine(
-    database_url,
-    echo=settings.debug,
-    pool_pre_ping=True,
-    # For Neon serverless: use smaller pool with faster recycling
-    pool_size=5,
-    max_overflow=10,
-    pool_recycle=300,
-    connect_args=connect_args,
-)
+    # asyncpg requires ssl to be passed as a context object, not via URL params
+    connect_args: dict = {"ssl": ssl.create_default_context()} if use_ssl else {}
 
-async_session_maker = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+    _engine = create_async_engine(
+        database_url,
+        # Only emit SQL to stdout when DEBUG=true — never in production
+        echo=settings.debug,
+        pool_pre_ping=True,
+        # Suitable for Neon serverless: smaller pool, faster recycling
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=300,
+        connect_args=connect_args,
+    )
+
+    _session_maker = async_sessionmaker(
+        _engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    return _engine, _session_maker
+
+
+engine, async_session_maker = _build_engine()
+
+
+async def ping_db() -> bool:
+    """Verify the database connection is reachable. Returns True on success."""
+    try:
+        async with async_session_maker() as session:
+            await session.execute(text("SELECT 1"))
+        return True
+    except Exception:  # noqa: BLE001 — intentional broad catch for connectivity probe
+        return False
 
 
 async def init_db() -> None:
-    """Initialize database - create tables."""
-    from .models import Base
+    """Verify database connectivity on startup.
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Schema management is handled exclusively by Alembic (``alembic upgrade head``).
+    This function no longer calls ``create_all`` — running that against an existing
+    database silently skips schema changes, which is incorrect for production.
+    """
+    if not await ping_db():
+        raise RuntimeError(
+            "Cannot connect to the database. "
+            "Check DATABASE_URL and ensure the server is reachable."
+        )
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get database session."""
+    """FastAPI dependency: yield an async database session."""
     async with async_session_maker() as session:
         try:
             yield session

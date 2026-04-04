@@ -7,7 +7,7 @@ Voice AI Agent Platform - Build, test, and deploy intelligent voice assistants.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  User Browser                                                   │
-│  (Next.js Dashboard)                                            │
+│  (Vite + React Dashboard)                                       │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ▼
@@ -42,7 +42,7 @@ majsterai/
 ├── monorepo/                 # This directory
 │   ├── apps/
 │   │   ├── api/              # FastAPI backend (Python)
-│   │   └── dashboard/        # Next.js frontend
+│   │   └── dashboard/        # Vite + React frontend (TypeScript)
 │   ├── packages/             # Shared packages (future)
 │   └── internal/             # Internal libraries (future)
 │
@@ -84,11 +84,17 @@ uv sync
 uv run --project apps/api uvicorn src.main:app --reload --port 8000
 ```
 
-Tables are created automatically on first startup.
-
-### 3. Setup Dashboard
+Run migrations on first startup (and after each deployment):
 
 ```bash
+uv run --project apps/api alembic upgrade head
+```
+
+### 3. Configure and run the Dashboard
+
+```bash
+cp apps/dashboard/.env.example apps/dashboard/.env
+# Edit apps/dashboard/.env if your API runs on a different URL
 cd apps/dashboard
 pnpm install
 pnpm dev
@@ -107,7 +113,7 @@ uv run python -m livekit.agents dev src/main.py dev
 
 ### 5. Test
 
-1. Open http://localhost:3000
+1. Open http://localhost:5173
 2. Create an organization
 3. Click "Test Agent"
 4. Start talking!

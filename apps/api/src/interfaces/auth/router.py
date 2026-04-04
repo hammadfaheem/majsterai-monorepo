@@ -3,8 +3,10 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...application.auth.register_with_org import RegisterWithOrgUseCase
@@ -23,6 +25,9 @@ from ...infrastructure.database.repositories import (
     SQLAlchemyUserRepository,
     UserRepository,
 )
+
+# Rate limiter — shared limiter instance keyed by client IP
+_limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -132,7 +137,9 @@ def create_access_token(user_id: str) -> str:
 
 
 @router.post("/register", response_model=AuthResponse)
+@_limiter.limit("10/minute")
 async def register(
+    request: Request,  # required by slowapi
     data: UserRegister,
     user_repo: UserRepository = Depends(get_user_repo),
     org_repo: OrganizationRepository = Depends(get_org_repo),
@@ -172,7 +179,9 @@ async def register(
 
 
 @router.post("/login", response_model=AuthResponse)
+@_limiter.limit("5/minute")
 async def login(
+    request: Request,  # required by slowapi
     data: UserLogin,
     user_repo: UserRepository = Depends(get_user_repo),
 ):

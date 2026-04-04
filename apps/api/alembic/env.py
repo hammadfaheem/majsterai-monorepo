@@ -8,16 +8,9 @@ from alembic import context
 
 from src.config import Settings
 
-# Import Base without loading db.database (which uses async engine)
-import importlib.util
-import os
-_spec = importlib.util.spec_from_file_location(
-    "models",
-    os.path.join(os.path.dirname(__file__), "..", "src", "db", "models.py"),
-)
-_models = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_models)
-Base = _models.Base
+# Import the models package so all ORM classes are registered with Base.metadata
+# before Alembic inspects it for autogenerate.
+from src.db.models import Base  # noqa: F401 — side-effect import registers all tables
 
 config = context.config
 

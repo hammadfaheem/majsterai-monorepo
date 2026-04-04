@@ -3,12 +3,18 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from .config import get_settings
-from .db.database import async_session_maker, init_db
+from .db.database import async_session_maker, init_db, ping_db
 from .infrastructure.database.repositories import SQLAlchemyUserRepository
+from .shared.exceptions import AppException, ConflictError, NotFoundError, ValidationError
+from .shared.middleware import LoggingMiddleware, RequestIDMiddleware
 from .interfaces.admin.router import router as admin_router
 from .interfaces.calendar.router import router as calendar_router
 from .interfaces.agent.router import router as agents_router
@@ -45,8 +51,13 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# ---------------------------------------------------------------------------
+# Startup / shutdown
+# ---------------------------------------------------------------------------
+
+
 async def _ensure_superadmin() -> None:
-    """If SUPERADMIN_EMAIL is set, grant that user SUPERADMIN role."""
+    """If SUPERADMIN_EMAIL is set, grant that user SUPERADMIN role on startup."""
     email = settings.superadmin_email
     if not email or not email.strip():
         return
@@ -65,30 +76,74 @@ async def _ensure_superadmin() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Application lifespan - startup and shutdown."""
+    """Application lifespan — verify DB connectivity on startup."""
     await init_db()
     await _ensure_superadmin()
     yield
 
+
+# ---------------------------------------------------------------------------
+# Application factory
+# ---------------------------------------------------------------------------
 
 app = FastAPI(
     title="MajsterAI API",
     description="Voice AI Agent Platform API",
     version="0.1.0",
     lifespan=lifespan,
+    # Hide /docs and /redoc in production
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
 )
 
-# CORS middleware - defaults to localhost dev origins; set CORS_ORIGINS in .env for production
+# Middleware — order matters: added last executes first
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(SlowAPIMiddleware)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS — restrict to the explicit method/header set the API actually uses
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
 )
 
-# Include routers
+
+# ---------------------------------------------------------------------------
+# Global exception handlers — map domain errors to HTTP responses centrally
+# so individual routers never need to re-catch them.
+# ---------------------------------------------------------------------------
+
+
+@app.exception_handler(NotFoundError)
+async def not_found_handler(_request: Request, exc: NotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": str(exc) or "Resource not found"})
+
+
+@app.exception_handler(ConflictError)
+async def conflict_handler(_request: Request, exc: ConflictError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc) or "Resource conflict"})
+
+
+@app.exception_handler(ValidationError)
+async def validation_handler(_request: Request, exc: ValidationError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(exc) or "Validation error"})
+
+
+@app.exception_handler(AppException)
+async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:
+    logger.exception("Unhandled application error", exc_info=exc)
+    return JSONResponse(status_code=500, content={"detail": "An internal error occurred"})
+
+
+# ---------------------------------------------------------------------------
+# Routers
+# ---------------------------------------------------------------------------
+
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(organizations_router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
@@ -134,13 +189,30 @@ app.include_router(
 )
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
+# ---------------------------------------------------------------------------
+# System endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.get("/", include_in_schema=False)
+async def root() -> dict:
     return {"message": "MajsterAI API", "version": "0.1.0"}
 
 
-@app.get("/health")
-async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+@app.get("/health", tags=["system"])
+async def health() -> JSONResponse:
+    """Liveness + readiness probe.
+
+    Returns 200 when the database is reachable, 503 otherwise.
+    Load balancers and Kubernetes readinessProbe should use this endpoint.
+    """
+    db_ok = await ping_db()
+    status = "healthy" if db_ok else "unhealthy"
+    code = 200 if db_ok else 503
+    return JSONResponse(
+        status_code=code,
+        content={
+            "status": status,
+            "database": "ok" if db_ok else "unreachable",
+        },
+    )
