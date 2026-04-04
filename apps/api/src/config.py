@@ -34,9 +34,15 @@ class Settings(BaseSettings):
     livekit_api_key: str = ""
     livekit_api_secret: str = ""
 
-    # Twilio (optional for now)
+    # Twilio
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
+
+    # LiveKit SIP
+    livekit_sip_domain: str = "sip.livekit.cloud"
+
+    # Public base URL (used for Twilio webhook URLs)
+    base_url: str = "https://your-api.example.com"
 
     # CORS – add production origins via CORS_ORIGINS env var (comma-separated)
     cors_origins: list[str] = [

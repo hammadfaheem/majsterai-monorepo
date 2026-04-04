@@ -39,6 +39,7 @@ from .interfaces.task.router import router as task_router
 from .interfaces.trade_category.router import router as trade_category_router
 from .interfaces.trade_service.router import router as trade_service_router
 from .interfaces.transfer.router import router as transfer_router
+from .interfaces.twilio.router import router as twilio_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -118,6 +119,7 @@ app.include_router(reminder_router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(lead_address_router, prefix="/api/lead-addresses", tags=["lead-addresses"])
 app.include_router(availability_router, prefix="/api/availabilities", tags=["availabilities"])
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
+app.include_router(twilio_router, prefix="/api/twilio", tags=["twilio"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["calendar"])
 app.include_router(
     notification_type_router, prefix="/api/notification-types", tags=["notification-types"]
