@@ -5,7 +5,7 @@ from typing import Any
 
 from ...domain.agent.entity import Agent as AgentEntity
 from ...domain.call_history.entity import CallHistory as CallHistoryEntity
-from ...infrastructure.database.repositories import AgentRepository, CallHistoryRepository
+from ...infrastructure.database.repositories import AgentRepository, CallHistoryRepository, OrganizationRepository
 from ...infrastructure.livekit.service import LiveKitService
 from ...shared.exceptions import NotFoundError
 from ...db.database import utc_now_ms
@@ -20,11 +20,13 @@ class CreateRoomUseCase:
         call_history_repo: CallHistoryRepository,
         livekit_service: LiveKitService,
         livekit_url: str,
+        org_repo: OrganizationRepository | None = None,
     ):
         self.agent_repo = agent_repo
         self.call_history_repo = call_history_repo
         self.livekit_service = livekit_service
         self.livekit_url = livekit_url
+        self.org_repo = org_repo
 
     async def execute(
         self,
