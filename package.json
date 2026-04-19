@@ -10,8 +10,10 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "pnpm --filter @majsterai/dashboard dev",
+    "dev:admin": "pnpm --filter @majsterai/admin dev",
     "dev:api": "cd apps/api && uv run uvicorn src.main:app --reload --port 8000",
     "build": "pnpm --filter @majsterai/dashboard build",
+    "build:admin": "pnpm --filter @majsterai/admin build",
     "lint": "pnpm --filter @majsterai/dashboard lint",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down"

@@ -1,4 +1,5 @@
 packages:
   - apps/dashboard
+  - apps/admin
   - packages/*
   - internal/*
