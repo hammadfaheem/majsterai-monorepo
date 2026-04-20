@@ -27,10 +27,6 @@ import { SchedulesPage } from '@/ui/pages/SchedulesPage'
 import { DepartmentsPage } from '@/ui/pages/DepartmentsPage'
 import { TagsPage } from '@/ui/pages/TagsPage'
 import { TasksPage } from '@/ui/pages/TasksPage'
-import { AdminGuard } from '@/ui/components/AdminGuard'
-import { AdminPage } from '@/ui/pages/AdminPage'
-import { AdminOrganizationsPage } from '@/ui/pages/AdminOrganizationsPage'
-import { AdminUsersPage } from '@/ui/pages/AdminUsersPage'
 import { CalendarSettingsPage } from '@/ui/pages/CalendarSettingsPage'
 
 export function Router() {
@@ -85,13 +81,7 @@ export function Router() {
         <Route path="test-agent" element={<Navigate to="/train-agent" replace />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="settings/calendar" element={<CalendarSettingsPage />} />
-        <Route path="admin" element={<AdminGuard />}>
-          <Route index element={<Navigate to="/admin/organizations" replace />} />
-          <Route element={<AdminPage />}>
-            <Route path="organizations" element={<AdminOrganizationsPage />} />
-            <Route path="users" element={<AdminUsersPage />} />
-          </Route>
-        </Route>
+
       </Route>
     </Routes>
   )

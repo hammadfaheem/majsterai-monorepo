@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui.store'
-import { useAppSelector } from '@/store/hooks'
 import {
   LayoutDashboard,
   Settings,
@@ -11,7 +10,6 @@ import {
   Calendar,
   FileText,
   CheckSquare,
-  ShieldCheck,
   GraduationCap,
 } from 'lucide-react'
 
@@ -30,14 +28,7 @@ const MOBILE_BREAKPOINT = 768
 
 export function Sidebar() {
   const { sidebarOpen, setSidebarOpen } = useUIStore()
-  const user = useAppSelector((state) => state.auth.user)
-  const navigation = useMemo(() => {
-    const nav = [...baseNavigation]
-    if (user?.role === 'SUPERADMIN') {
-      nav.push({ name: 'Admin', href: '/admin', icon: ShieldCheck })
-    }
-    return nav
-  }, [user?.role])
+  const navigation = useMemo(() => [...baseNavigation], [])
 
   useEffect(() => {
     const onResize = () => {
