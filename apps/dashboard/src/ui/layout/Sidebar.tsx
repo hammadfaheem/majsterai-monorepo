@@ -11,6 +11,10 @@ import {
   FileText,
   CheckSquare,
   GraduationCap,
+  Users,
+  Clock,
+  Building2,
+  Tag,
 } from 'lucide-react'
 
 const baseNavigation = [
@@ -21,6 +25,10 @@ const baseNavigation = [
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Train Agent', href: '/train-agent', icon: GraduationCap },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Team', href: '/team', icon: Users },
+  { name: 'Schedules', href: '/schedules', icon: Clock },
+  { name: 'Departments', href: '/departments', icon: Building2 },
+  { name: 'Tags', href: '/tags', icon: Tag },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 

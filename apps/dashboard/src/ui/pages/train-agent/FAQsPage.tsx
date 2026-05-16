@@ -1,6 +1,6 @@
 /** FAQs – common questions your agent can answer. */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOrganization } from '@/application/organization/organizationContext'
 import { organizationService } from '@/application/organization/organizationService'

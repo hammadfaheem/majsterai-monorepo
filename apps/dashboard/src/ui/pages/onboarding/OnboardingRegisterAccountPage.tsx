@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials } from '@/store/authSlice'
 import { userService } from '@/application/user/userService'

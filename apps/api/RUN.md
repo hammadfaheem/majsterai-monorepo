@@ -40,11 +40,10 @@ From the monorepo root:
 uv run --project apps/api uvicorn src.main:app --reload --port 8000
 ```
 
-On first startup the API will automatically create all database tables.
+## 3b. Run database migrations (required before first run)
 
-## 4. Run migrations (optional)
-
-If you need to run Alembic migrations explicitly:
+The API does **not** auto-create tables on startup. Schema is managed exclusively via Alembic.
+Run migrations once before starting the server (and after every schema change):
 
 ```bash
 cd apps/api

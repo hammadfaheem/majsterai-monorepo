@@ -22,6 +22,7 @@ export interface Appointment {
   customer_cancellation_reason: string | null
   summary: string | null
   photos: unknown[] | null
+  reference_id?: string | null
   created_at: number
   updated_at: number
 }

@@ -15,7 +15,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent } from '@/ui/components/Card'
-import { Button } from '@/ui/components/Button'
 import { useSetupProgress } from '@/lib/hooks/useSetupProgress'
 import { cn } from '@/lib/utils'
 
