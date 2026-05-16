@@ -4,53 +4,54 @@ The project uses **uv** for dependency management. Run all commands from the mon
 
 ## 1. Install dependencies
 
-From the monorepo root:
-
 ```bash
 uv sync
 ```
 
 ## 2. Configure environment
 
-Create `apps/api/.env` (the API always loads its `.env` from this location regardless of working directory):
+Copy the example file and fill in your values:
 
-```env
-# LiveKit
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_api_key_here
-LIVEKIT_API_SECRET=your_api_secret_here
-
-# Database (Neon PostgreSQL)
-DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
-
-# Application
-ENVIRONMENT=development
-DEBUG=true
+```bash
+cp apps/api/.env.example apps/api/.env
 ```
 
-> **Note:** The `DATABASE_URL` must be a Neon (or any PostgreSQL) connection string.
-> For Neon, copy the connection string from your Neon project dashboard.
-> The `channel_binding=require` parameter is automatically stripped at runtime — you can leave it in the URL if Neon adds it.
+Key variables to set:
 
-## 3. Run the server
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Neon (or any PostgreSQL) connection string |
+| `JWT_SECRET` | Random secret — generate with `openssl rand -hex 32` |
+| `LIVEKIT_URL` | Your LiveKit Cloud project WebSocket URL |
+| `LIVEKIT_API_KEY` | LiveKit API key |
+| `LIVEKIT_API_SECRET` | LiveKit API secret |
 
-From the monorepo root:
+Optional (phone/SIP features — leave unset to disable):
+
+| Variable | Description |
+|----------|-------------|
+| `TWILIO_ACCOUNT_SID` | Twilio account SID |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `BASE_URL` | Public API URL for Twilio webhook callbacks |
+
+> **Neon tip:** Copy the connection string from your [Neon Console](https://console.neon.tech) → project → **Connection string**.
+> The `channel_binding=require` parameter is automatically stripped at runtime — you can leave it in the URL as-is.
+
+## 3. Run database migrations
+
+Schema is managed exclusively by Alembic. Run once before starting the server and again after every schema change:
+
+```bash
+uv run --project apps/api alembic upgrade head
+```
+
+## 4. Start the server
 
 ```bash
 uv run --project apps/api uvicorn src.main:app --reload --port 8000
 ```
 
-## 3b. Run database migrations (required before first run)
-
-The API does **not** auto-create tables on startup. Schema is managed exclusively via Alembic.
-Run migrations once before starting the server (and after every schema change):
-
-```bash
-cd apps/api
-uv run alembic upgrade head
-```
-
 ## 5. Access
 
-- API docs: http://localhost:8000/docs
+- API docs: http://localhost:8000/docs  *(only available when `DEBUG=true`)*
 - Health check: http://localhost:8000/health

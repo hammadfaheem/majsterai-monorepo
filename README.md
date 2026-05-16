@@ -108,7 +108,7 @@ git clone git@github.com:hammadfaheem/majsterai-agent.git majsterai-agent
 cd majsterai-agent
 uv sync
 # Edit .env with LiveKit credentials
-uv run python -m livekit.agents dev src/main.py dev
+uv run python -m livekit.agents dev src/main.py
 ```
 
 ### 5. Test
@@ -122,42 +122,70 @@ uv run python -m livekit.agents dev src/main.py dev
 
 ### API Directory (`apps/api/.env`)
 
+Copy the example file and fill in your values:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
+
+Key variables:
+
 ```env
+# Application
+ENVIRONMENT=development
+DEBUG=true
+JWT_SECRET=<openssl rand -hex 32>
+
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+
 # LiveKit
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_api_key
 LIVEKIT_API_SECRET=your_api_secret
 
-# Database (Neon PostgreSQL)
-DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+# Optional — grants SUPERADMIN role on startup
+SUPERADMIN_EMAIL=admin@example.com
 
-# Application
-ENVIRONMENT=development
-DEBUG=true
+# Optional — only needed for real phone number / SIP features
+# TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# TWILIO_AUTH_TOKEN=your_twilio_auth_token
+# BASE_URL=https://your-api.example.com
 ```
 
 Get your `DATABASE_URL` from the [Neon Console](https://console.neon.tech) → your project → **Connection string**.
-The `sslmode=require` and `channel_binding` parameters are handled automatically.
+The `sslmode=require` and `channel_binding` parameters in the URL are handled automatically by the driver.
 
 **Important:** Never commit `.env` files to git.
 
 ## API Endpoints
 
-### Organizations
+Full interactive docs available at `http://localhost:8000/docs` when `DEBUG=true`.
 
-- `POST /api/organizations/` - Create organization
-- `GET /api/organizations/` - List organizations
-- `GET /api/organizations/{id}` - Get organization
-
-### Agents
-
-- `GET /api/agents/{org_id}` - Get agent config
-- `PUT /api/agents/{org_id}` - Update agent config
-
-### LiveKit
-
-- `POST /api/livekit/create-room` - Create room with agent config
-- `POST /api/livekit/token` - Generate participant token
+| Prefix | Resource |
+|--------|----------|
+| `/api/auth` | Authentication (register, login, JWT) |
+| `/api/organizations` | Organization management |
+| `/api/agents` | Agent configuration |
+| `/api/livekit` | Room creation & participant tokens |
+| `/api/memberships` | Team memberships |
+| `/api/leads` | Lead management |
+| `/api/call-history` | Call logs |
+| `/api/appointments` | Appointment scheduling |
+| `/api/schedules` | Availability schedules |
+| `/api/departments` | Departments |
+| `/api/invoices` | Invoices |
+| `/api/tasks` | Tasks |
+| `/api/reminders` | Reminders |
+| `/api/transfers` | Call transfers |
+| `/api/scenarios` | Agent scenarios |
+| `/api/trade-categories` | Trade categories |
+| `/api/trade-services` | Trade services |
+| `/api/twilio` | Twilio webhooks |
+| `/api/calendar` | Google Calendar integration |
+| `/api/notification-types` | Notification type config |
+| `/api/notification-logs` | Notification audit log |
+| `/api/admin` | Platform admin |
 
 ## How It Works
 
@@ -201,7 +229,7 @@ git clone git@github.com:hammadfaheem/majsterai-agent.git majsterai-agent
 cd majsterai-agent
 uv sync
 # Edit .env with LiveKit credentials
-uv run python -m livekit.agents dev src/main.py dev
+uv run python -m livekit.agents dev src/main.py
 ```
 
 ## License
