@@ -1,24 +1,142 @@
 /** Business Information – configure company details, location, trading hours, and social profiles. */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOrganization } from '@/application/organization/organizationContext'
 import { organizationService } from '@/application/organization/organizationService'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card'
 import { Button } from '@/ui/components/Button'
 import { Input } from '@/ui/components/Input'
-import { Check, MapPin, Clock, FileText, Layers, Share2 } from 'lucide-react'
+import { Check, MapPin, Clock, FileText, Layers, Share2, LocateFixed } from 'lucide-react'
 
-const COMMON_TIMEZONES = [
-  'UTC',
-  'Europe/Warsaw',
-  'Europe/London',
-  'Europe/Berlin',
-  'America/New_York',
-  'America/Los_Angeles',
-  'Asia/Tokyo',
-  'Australia/Sydney',
-]
+// ── Timezone helpers ──────────────────────────────────────────────────────────
+
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** Full IANA timezone list, sorted alphabetically. */
+const ALL_TIMEZONES: string[] = (() => {
+  try {
+    return [...Intl.supportedValuesOf('timeZone')].sort()
+  } catch {
+    // Fallback for environments that don't support supportedValuesOf
+    return ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London',
+      'Europe/Berlin', 'Asia/Karachi', 'Asia/Tokyo', 'Australia/Sydney']
+  }
+})()
+
+/** Returns a label like "Asia/Karachi (GMT+5)" for a given IANA timezone. */
+function tzLabel(tz: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date())
+    const offset = parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
+    return `${tz} (${offset})`
+  } catch {
+    return tz
+  }
+}
+
+// ── Searchable timezone combobox ──────────────────────────────────────────────
+
+interface TimezoneSelectProps {
+  value: string
+  onChange: (tz: string) => void
+}
+
+function TimezoneSelect({ value, onChange }: TimezoneSelectProps) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase()
+    return q ? ALL_TIMEZONES.filter((tz) => tz.toLowerCase().includes(q)) : ALL_TIMEZONES
+  }, [query])
+
+  const handleSelect = (tz: string) => {
+    onChange(tz)
+    setOpen(false)
+    setQuery('')
+  }
+
+  const handleAutoDetect = () => {
+    onChange(BROWSER_TZ)
+    setOpen(false)
+    setQuery('')
+  }
+
+  return (
+    <div className="flex items-start gap-2">
+      <div ref={containerRef} className="relative w-full max-w-xs">
+        {/* Trigger input — shows selected value when closed, search query when open */}
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={open ? query : value}
+            placeholder={open ? 'Search timezone…' : value}
+            onFocus={() => setOpen(true)}
+            onChange={(e) => { setOpen(true); setQuery(e.target.value) }}
+            className="flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            autoComplete="off"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+            {open ? '▲' : '▼'}
+          </span>
+        </div>
+
+        {/* Dropdown list */}
+        {open && (
+          <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-slate-400">No results</li>
+            ) : (
+              filtered.map((tz) => (
+                <li
+                  key={tz}
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(tz) }}
+                  className={`cursor-pointer px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 ${
+                    tz === value ? 'bg-slate-100 font-medium dark:bg-slate-700' : ''
+                  }`}
+                >
+                  {tzLabel(tz)}
+                </li>
+              ))
+            )}
+          </ul>
+        )}
+      </div>
+
+      {/* Auto-detect button */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleAutoDetect}
+        title={`Auto-detect: ${BROWSER_TZ}`}
+        className="flex items-center gap-1.5 whitespace-nowrap mt-0.5"
+      >
+        <LocateFixed className="h-3.5 w-3.5" />
+        Auto-detect
+      </Button>
+    </div>
+  )
+}
 
 const COUNTRIES = [
   { code: 'AU', name: 'Australia' },
@@ -130,7 +248,7 @@ export function BusinessInformationPage() {
   const [country, setCountry] = useState('')
   const [currency, setCurrency] = useState('AUD')
   const [locationType, setLocationType] = useState<'fixed' | 'mobile' | 'remote'>('fixed')
-  const [timeZone, setTimeZone] = useState('Australia/Sydney')
+  const [timeZone, setTimeZone] = useState(BROWSER_TZ)
   const [slots, setSlots] = useState<TradingSlot[]>([{ days: ['mon', 'tue', 'wed', 'thu', 'fri'], open: '09:00', close: '23:00' }])
   const [businessDescription, setBusinessDescription] = useState('')
   const [mainCategory, setMainCategory] = useState('')
@@ -368,18 +486,8 @@ export function BusinessInformationPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">Set availability</p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Time zone</label>
-              <select
-                value={timeZone}
-                onChange={(e) => setTimeZone(e.target.value)}
-                className="mt-1 flex h-10 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              >
-                {COMMON_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Time zone</label>
+              <TimezoneSelect value={timeZone} onChange={setTimeZone} />
             </div>
             <div className="space-y-3">
               {slots.map((slot, i) => (

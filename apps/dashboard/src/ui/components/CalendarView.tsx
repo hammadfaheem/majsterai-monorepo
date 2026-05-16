@@ -56,13 +56,33 @@ interface Props {
   orgId: string
   /** Called when the user clicks an empty time slot — open a pre-filled create modal */
   onSelectDate?: (start: Date, end: Date) => void
+  /** IANA timezone string (e.g. "Asia/Tokyo"). Dates are rendered in this tz. */
+  timeZone?: string
+}
+
+/**
+ * Convert a UTC epoch (ms) to a bare ISO string like "2026-05-21T09:00:00"
+ * representing the wall-clock time in the given IANA timezone.
+ * Passing a bare ISO string to FullCalendar makes it render at that exact
+ * time without any further offset — no timezone plugin needed.
+ */
+function toTzIso(epochMs: number, tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(epochMs))
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function CalendarView({ orgId, onSelectDate }: Props) {
+export function CalendarView({ orgId, onSelectDate, timeZone }: Props) {
   const calRef = useRef<FullCalendar>(null)
   const queryClient = useQueryClient()
 
@@ -100,8 +120,11 @@ export function CalendarView({ orgId, onSelectDate }: Props) {
       appointments.map((apt) => ({
         id: apt.id,
         title: apt.title || 'Untitled',
-        start: new Date(apt.start),
-        end: new Date(apt.end),
+        // When an org timezone is set, pass a bare ISO string (no "Z") so
+        // FullCalendar renders the event at that wall-clock time without any
+        // further offset — no timezone plugin required.
+        start: timeZone ? toTzIso(apt.start, timeZone) : new Date(apt.start),
+        end: timeZone ? toTzIso(apt.end, timeZone) : new Date(apt.end),
         backgroundColor: STATUS_COLORS[apt.status] ?? '#3b82f6',
         borderColor: STATUS_COLORS[apt.status] ?? '#3b82f6',
         extendedProps: {
@@ -110,7 +133,7 @@ export function CalendarView({ orgId, onSelectDate }: Props) {
           referenceId: apt.reference_id,
         },
       })),
-    [appointments],
+    [appointments, timeZone],
   )
 
   // --- Drag & drop rescheduling -------------------------------------------
@@ -153,18 +176,18 @@ export function CalendarView({ orgId, onSelectDate }: Props) {
   // --- Event click ---------------------------------------------------------
   const handleEventClick = useCallback((arg: EventClickArg) => {
     setQueryStates({ calView: view, calDate: null })
-    // Extend: open a detail modal by setting selectedEventId in URL state
-    // e.g. setQueryStates({ selectedEventId: arg.event.id })
-    const start = arg.event.start?.toLocaleString() ?? ''
-    const end = arg.event.end?.toLocaleString() ?? ''
+    const fmt = (d: Date | null | undefined) =>
+      d?.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short', timeZone: timeZone }) ?? ''
     const status = arg.event.extendedProps.status as string
-    window.alert(`${arg.event.title}\nStatus: ${status}\n${start} → ${end}`)
-  }, [view, setQueryStates])
+    window.alert(`${arg.event.title}\nStatus: ${status}\n${fmt(arg.event.start)} → ${fmt(arg.event.end)}`)
+  }, [view, setQueryStates, timeZone])
 
   // --- Date select (click empty slot) ------------------------------------
   const handleDateSelect = useCallback(
     (arg: DateSelectArg) => {
       calRef.current?.getApi().unselect()
+      // arg.start/end represent the clicked slot's wall-clock position.
+      // We pass them as-is; AppointmentsPage converts to epoch via toLocalInput.
       onSelectDate?.(arg.start, arg.end)
     },
     [onSelectDate],
@@ -246,7 +269,7 @@ export function CalendarView({ orgId, onSelectDate }: Props) {
         <div className="flex items-center justify-between gap-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950">
           <span className="text-amber-800 dark:text-amber-200">
             Reschedule <strong>{pendingDrop.event.title}</strong> to{' '}
-            {pendingDrop.event.start?.toLocaleString()}?
+            {pendingDrop.event.start?.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short', timeZone: timeZone })}?
           </span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={cancelDrop} className="px-3 py-1 text-xs">

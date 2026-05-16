@@ -21,6 +21,7 @@ interface TradeService {
 
 export function AppointmentsPage() {
   const { currentOrganization } = useOrganization()
+  const orgTimeZone = currentOrganization?.time_zone ?? undefined
   const queryClient = useQueryClient()
   const [pageView, setPageView] = useState<'list' | 'calendar'>('calendar')
   const [createOpen, setCreateOpen] = useState(false)
@@ -98,8 +99,14 @@ export function AppointmentsPage() {
   }
 
   const handleCalendarDateSelect = (start: Date, end: Date) => {
-    setCreateStart(start.toISOString().slice(0, 16))
-    setCreateEnd(end.toISOString().slice(0, 16))
+    // Format as local datetime string (not UTC) so the datetime-local input
+    // shows the wall-clock time the user clicked and new Date() round-trips correctly.
+    const toLocalInput = (d: Date) => {
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    }
+    setCreateStart(toLocalInput(start))
+    setCreateEnd(toLocalInput(end))
     setCreateOpen(true)
   }
 
@@ -148,6 +155,7 @@ export function AppointmentsPage() {
         <CalendarView
           orgId={currentOrganization.id}
           onSelectDate={handleCalendarDateSelect}
+          timeZone={orgTimeZone}
         />
       ) : (
         <>
@@ -185,7 +193,11 @@ export function AppointmentsPage() {
                     <li key={apt.id} className="flex justify-between text-sm">
                       <span className="font-medium">{apt.title || 'Untitled'}</span>
                       <span className="text-slate-500">
-                        {new Date(apt.start).toLocaleString()} – {apt.status}
+                        {new Date(apt.start).toLocaleString(undefined, {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                          timeZone: orgTimeZone,
+                        })} – {apt.status}
                       </span>
                     </li>
                   ))}

@@ -35,6 +35,7 @@ export function DashboardPage() {
   const theme = useUIStore((s) => s.theme)
   const isDark = theme === 'dark'
   const { currentOrganization } = useOrganization()
+  const orgTimeZone = currentOrganization?.time_zone ?? undefined
 
   const chartTextColor = isDark ? '#94a3b8' : '#475569'
   const chartTooltipBg = isDark ? '#1e293b' : '#ffffff'
@@ -239,7 +240,7 @@ export function DashboardPage() {
                     <span className="font-medium">{a.title || 'Appointment'}</span>
                     <span className="text-slate-500 dark:text-slate-400">
                       {' '}
-                      – {new Date(a.start).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                      – {new Date(a.start).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short', timeZone: orgTimeZone })}
                     </span>
                   </li>
                 ))}
